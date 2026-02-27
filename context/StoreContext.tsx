@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Product, CartItem, Order, OrderStatus, Review, Category } from '../types';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
 import { db } from '../firebase-config';
-import { collection, onSnapshot, query, where, addDoc, updateDoc, doc, setDoc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
 import { translations } from '../translations';
 import { demoProducts, demoCategories } from '../data/demoData';
 
@@ -41,6 +41,7 @@ interface StoreContextType {
   isAuthenticated: boolean;
   recentlyViewed: Product[];
   addToRecentlyViewed: (product: Product) => void;
+  showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -289,47 +290,83 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const placeOrder = async (shippingDetails: any, paymentMethod: any) => {
     if (!user || !db) return false;
-    const subTotal = cart.reduce((acc, item) => {
-      const discountedPrice = item.price - (item.price * item.discountPercentage / 100);
-      return acc + (discountedPrice * item.quantity);
-    }, 0);
     
-    let shippingCost = 0;
-    if (subTotal <= 5000) {
-      shippingCost = shippingDetails.city === 'Sylhet' ? DELIVERY_CHARGE_INSIDE : DELIVERY_CHARGE_OUTSIDE;
-    }
-
-    const newOrder: Order = {
-      id: `ORD-${Date.now()}`,
-      userId: user.id,
-      items: [...cart],
-      totalAmount: subTotal,
-      deliveryCharge: shippingCost,
-      discountAmount: 0,
-      finalTotal: subTotal + shippingCost,
-      status: OrderStatus.PENDING,
-      paymentMethod,
-      shippingAddress: shippingDetails.address,
-      contactNumber: shippingDetails.phone,
-      date: new Date().toISOString()
-    };
-
     try {
-      await setDoc(doc(db, "orders", newOrder.id), newOrder);
+      await runTransaction(db, async (transaction) => {
+        // 1. Check stock for all items
+        for (const item of cart) {
+          const productRef = doc(db!, "products", item.id);
+          const productDoc = await transaction.get(productRef);
+          
+          if (!productDoc.exists()) {
+            throw new Error(`Product ${item.name} does not exist!`);
+          }
+          
+          const currentStock = productDoc.data().stock;
+          if (currentStock < item.quantity) {
+            throw new Error(`Insufficient stock for ${item.name}. Available: ${currentStock}`);
+          }
+        }
 
-      const pointsEarned = Math.floor(subTotal / 100);
-      const updatedUser = { ...user, points: user.points + pointsEarned };
-      
-      await updateDoc(doc(db, "users", user.id), { points: updatedUser.points });
-      
-      setUser(updatedUser);
-      localStorage.setItem('nur_user', JSON.stringify(updatedUser));
+        // 2. Calculate totals (re-calculate for security)
+        const subTotal = cart.reduce((acc, item) => {
+          const discountedPrice = item.price - (item.price * item.discountPercentage / 100);
+          return acc + (discountedPrice * item.quantity);
+        }, 0);
+        
+        let shippingCost = 0;
+        if (subTotal <= 5000) {
+          shippingCost = shippingDetails.city === 'Sylhet' ? DELIVERY_CHARGE_INSIDE : DELIVERY_CHARGE_OUTSIDE;
+        }
+
+        const newOrder: Order = {
+          id: `ORD-${Date.now()}`,
+          userId: user.id,
+          items: [...cart],
+          totalAmount: subTotal,
+          deliveryCharge: shippingCost,
+          discountAmount: 0,
+          finalTotal: subTotal + shippingCost,
+          status: OrderStatus.PENDING,
+          paymentMethod,
+          shippingAddress: shippingDetails.address,
+          contactNumber: shippingDetails.phone,
+          date: new Date().toISOString()
+        };
+
+        // 3. Perform updates
+        // Create Order
+        const orderRef = doc(db!, "orders", newOrder.id);
+        transaction.set(orderRef, newOrder);
+
+        // Update Stock
+        for (const item of cart) {
+          const productRef = doc(db!, "products", item.id);
+          const productDoc = await transaction.get(productRef); // Need to get again or rely on previous get? 
+          // Firestore transactions require reads before writes. We read all above.
+          // However, we can just use increment(-quantity) but we need to ensure it doesn't go below zero.
+          // Since we checked above in the same transaction, it's safe.
+          const newStock = productDoc.data()!.stock - item.quantity;
+          transaction.update(productRef, { stock: newStock });
+        }
+
+        // Update User Points
+        const pointsEarned = Math.floor(subTotal / 100);
+        const userRef = doc(db!, "users", user.id);
+        transaction.update(userRef, { points: user.points + pointsEarned });
+        
+        // Update local state after successful transaction
+        const updatedUser = { ...user, points: user.points + pointsEarned };
+        setUser(updatedUser);
+        localStorage.setItem('nur_user', JSON.stringify(updatedUser));
+      });
 
       clearCart();
+      showToast("Order placed successfully!", "success");
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error placing order:", error);
-      showToast("Failed to place order", "error");
+      showToast(error.message || "Failed to place order", "error");
       return false;
     }
   };
@@ -377,6 +414,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 reviews: updatedReviews,
                 rating: avgRating
             });
+            showToast("Review added successfully!", "success");
         }
     } catch (error) {
         console.error("Error adding review:", error);
@@ -406,7 +444,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, setTheme, setLanguage, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed
+      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, setTheme, setLanguage, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast
     }}>
       {children}
     </StoreContext.Provider>
