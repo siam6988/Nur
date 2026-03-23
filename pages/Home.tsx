@@ -25,8 +25,9 @@ const Home: React.FC = () => {
     );
   }
 
-  const featuredProducts = products.slice(0, 4);
-  const flashSaleProducts = products.filter(p => p.discountPercentage > 10).slice(0, 4);
+  const retailProducts = products.filter(p => !p.isWholesale);
+  const featuredProducts = retailProducts.slice(0, 4);
+  const flashSaleProducts = retailProducts.filter(p => p.discountPercentage > 10).slice(0, 4);
 
   return (
     <div className="space-y-12 pb-12">

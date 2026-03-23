@@ -133,7 +133,28 @@ export const translations = {
     cat_Fashion: "Fashion",
     cat_Electronics: "Electronics",
     cat_Home: "Home & Living",
-    cat_Beauty: "Beauty"
+    cat_Beauty: "Beauty",
+
+    // Wholesale
+    wholesale: "Wholesale",
+    loginToSeePrice: "Login to see price",
+    moq: "MOQ",
+    minOrderQty: "Minimum Order Quantity",
+    tierPricing: "Tier Pricing",
+    quantity: "Quantity",
+    price: "Price",
+    bulkDiscount: "Bulk Discount",
+    wholesaleProducts: "Wholesale Products",
+    noWholesaleProducts: "No wholesale products found.",
+    moqRequired: "Minimum order quantity is",
+    pieces: "pcs",
+    retail: "Retail",
+    isWholesale: "Is Wholesale",
+    tierPricingEdit: "Edit Tier Pricing",
+    minQty: "Min Qty",
+    maxQty: "Max Qty",
+    addTier: "Add Tier",
+    removeTier: "Remove Tier"
   },
   bn: {
     // Navbar
@@ -269,6 +290,27 @@ export const translations = {
     cat_Fashion: "ফ্যাশন",
     cat_Electronics: "ইলেকট্রনিক্স",
     cat_Home: "হোম ও লিভিং",
-    cat_Beauty: "বিউটি"
+    cat_Beauty: "বিউটি",
+
+    // Wholesale
+    wholesale: "হোলসেল",
+    loginToSeePrice: "দাম দেখতে লগইন করুন",
+    moq: "MOQ",
+    minOrderQty: "সর্বনিম্ন অর্ডারের পরিমাণ",
+    tierPricing: "টিয়ার প্রাইসিং",
+    quantity: "পরিমাণ",
+    price: "দাম",
+    bulkDiscount: "বাল্ক ডিসকাউন্ট",
+    wholesaleProducts: "হোলসেল পণ্য",
+    noWholesaleProducts: "কোনো হোলসেল পণ্য পাওয়া যায়নি।",
+    moqRequired: "সর্বনিম্ন অর্ডারের পরিমাণ হলো",
+    pieces: "পিস",
+    retail: "রিটেইল",
+    isWholesale: "হোলসেল কিনা",
+    tierPricingEdit: "টিয়ার প্রাইসিং এডিট",
+    minQty: "সর্বনিম্ন পরিমাণ",
+    maxQty: "সর্বোচ্চ পরিমাণ",
+    addTier: "টিয়ার যোগ করুন",
+    removeTier: "টিয়ার মুছুন"
   }
 };

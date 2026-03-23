@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Product, CartItem, Order, OrderStatus, Review, Category } from '../types';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
-import { db } from '../firebase-config';
+import { db, auth } from '../firebase-config';
 import { collection, onSnapshot, query, where, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { translations } from '../translations';
 import { demoProducts, demoCategories } from '../data/demoData';
 
@@ -34,7 +35,7 @@ interface StoreContextType {
   updateCartQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   toggleWishlist: (product: Product) => void;
-  placeOrder: (shippingDetails: any, paymentMethod: any) => Promise<boolean>;
+  placeOrder: (shippingDetails: any, paymentMethod: any, discountAmount?: number, usedPoints?: number) => Promise<boolean>;
   cancelOrder: (orderId: string) => void;
   addReview: (productId: string, rating: number, comment: string) => void;
   cartTotal: number;
@@ -42,6 +43,7 @@ interface StoreContextType {
   recentlyViewed: Product[];
   addToRecentlyViewed: (product: Product) => void;
   showToast: (message: string, type?: 'success' | 'error') => void;
+  validateCoupon: (code: string, cartTotal: number) => Promise<number>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -84,14 +86,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Initialize Local Storage Data
   useEffect(() => {
-    const savedUser = localStorage.getItem('nur_user');
     const savedCart = localStorage.getItem('nur_cart');
     const savedWishlist = localStorage.getItem('nur_wishlist');
     const savedRecentlyViewed = localStorage.getItem('nur_recently_viewed');
     const savedTheme = localStorage.getItem('nur_theme') as 'light' | 'dark';
     const savedLanguage = localStorage.getItem('nur_language') as 'bn' | 'en';
     
-    if (savedUser) setUser(JSON.parse(savedUser));
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
     if (savedRecentlyViewed) setRecentlyViewed(JSON.parse(savedRecentlyViewed));
@@ -99,36 +99,43 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (savedLanguage) setLanguageState(savedLanguage);
   }, []);
 
-  // Seeding Logic
+  // Auth Listener
   useEffect(() => {
-    if (!db) return;
-    const seedDatabase = async () => {
-      try {
-        const productsColl = collection(db, "products");
-        const categoriesColl = collection(db, "categories");
-        
-        const pSnapshot = await getDocs(productsColl);
-        const cSnapshot = await getDocs(categoriesColl);
-
-        if (pSnapshot.empty) {
-          console.log("Seeding Products...");
-          for (const p of demoProducts) {
-            await setDoc(doc(db, "products", p.id), p);
-          }
-        }
-
-        if (cSnapshot.empty) {
-          console.log("Seeding Categories...");
-          for (const c of demoCategories) {
-            await setDoc(doc(db, "categories", c.id), c);
-          }
-        }
-      } catch (error) {
-        console.error("Error seeding database:", error);
-      }
-    };
+    if (!auth) return;
+    let unsubUser: () => void;
     
-    seedDatabase();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userRef = doc(db!, "users", firebaseUser.uid);
+        
+        // Check if user exists first
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          const newUser: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'User',
+            email: firebaseUser.email || '',
+            points: 0,
+            avatar: firebaseUser.photoURL || 'https://picsum.photos/seed/user_avatar/100/100',
+          };
+          await setDoc(userRef, newUser);
+        }
+
+        // Listen to user changes
+        unsubUser = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUser({ id: docSnap.id, ...docSnap.data() } as User);
+          }
+        });
+      } else {
+        setUser(null);
+        if (unsubUser) unsubUser();
+      }
+    });
+    return () => {
+      unsubscribe();
+      if (unsubUser) unsubUser();
+    };
   }, []);
 
   // Firestore Listeners
@@ -205,55 +212,61 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, []);
 
-  const login = async (email: string, name: string = 'Tanvir Hasan') => {
-    if (!db) {
-      console.warn("Firestore not initialized");
+  const login = async (email: string, name: string = 'User') => {
+    // This is just a placeholder to satisfy the interface if it's called directly.
+    // Real login should be handled via Firebase Auth in the Login component.
+    console.warn("Use Firebase Auth directly for login.");
+  };
+
+  const logout = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
+  };
+
+  const calculateAppliedPrice = (product: Product, quantity: number) => {
+    let basePrice = product.price - (product.price * product.discountPercentage / 100);
+    
+    if (product.isWholesale && product.tierPricing && product.tierPricing.length > 0) {
+      // Find the applicable tier
+      const tier = product.tierPricing.find(t => 
+        quantity >= t.min && (t.max === null || quantity <= t.max)
+      );
+      if (tier) {
+        basePrice = tier.price;
+      } else {
+        // If below MOQ, use the highest tier price (lowest min)
+        const sortedTiers = [...product.tierPricing].sort((a, b) => a.min - b.min);
+        if (sortedTiers.length > 0) {
+          basePrice = sortedTiers[0].price;
+        }
+      }
+    }
+    return basePrice;
+  };
+
+  const addToCart = (product: Product, size: string, quantity: number = 1) => {
+    if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      showToast(`${t('moqRequired')} ${product.minimumOrderQuantity} ${t('pieces')}`, 'error');
       return;
     }
-    // For now, we simulate login but try to fetch/create user in Firestore to keep consistency
-    // In a real app, use firebase/auth
-    const userId = `u-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
-    
-    let userData: User;
-    if (userSnap.exists()) {
-      userData = { id: userSnap.id, ...userSnap.data() } as User;
-    } else {
-      userData = {
-        id: userId,
-        name: name,
-        email: email,
-        points: 0,
-        avatar: 'https://picsum.photos/seed/user_avatar/100/100',
-        address: 'Dhaka, Bangladesh',
-        phone: '01700000000'
-      };
-      await setDoc(userRef, userData);
-    }
-    
-    setUser(userData);
-    localStorage.setItem('nur_user', JSON.stringify(userData));
-  };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('nur_user');
-  };
-
-  const addToCart = (product: Product, size: string) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id && item.selectedSize === size);
       if (existing) {
+        const newQuantity = existing.quantity + quantity;
+        const newPrice = calculateAppliedPrice(product, newQuantity);
         return prev.map(item => 
           item.cartId === existing.cartId 
-            ? { ...item, quantity: item.quantity + 1 } 
+            ? { ...item, quantity: newQuantity, appliedPrice: newPrice } 
             : item
         );
       }
-      return [...prev, { ...product, cartId: `${product.id}-${size}-${Date.now()}`, selectedSize: size, quantity: 1 }];
+      
+      const appliedPrice = calculateAppliedPrice(product, quantity);
+      return [...prev, { ...product, cartId: `${product.id}-${size}-${Date.now()}`, selectedSize: size, quantity, appliedPrice }];
     });
-    // Use name_en or name_bn based on language, or just default to name_en for toast
+    
     const productName = language === 'bn' ? product.name_bn : product.name_en;
     showToast(`${productName} ${t('addedToCart')}`);
   };
@@ -263,8 +276,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateCartQuantity = (cartId: string, quantity: number) => {
-    if (quantity < 1) return;
-    setCart(prev => prev.map(item => item.cartId === cartId ? { ...item, quantity } : item));
+    setCart(prev => prev.map(item => {
+      if (item.cartId === cartId) {
+        if (item.isWholesale && item.minimumOrderQuantity && quantity < item.minimumOrderQuantity) {
+          showToast(`${t('moqRequired')} ${item.minimumOrderQuantity} ${t('pieces')}`, 'error');
+          return item; // Don't update if below MOQ
+        }
+        if (quantity < 1) return item;
+        
+        const newPrice = calculateAppliedPrice(item, quantity);
+        return { ...item, quantity, appliedPrice: newPrice };
+      }
+      return item;
+    }));
   };
 
   const clearCart = () => setCart([]);
@@ -288,7 +312,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
   };
 
-  const placeOrder = async (shippingDetails: any, paymentMethod: any) => {
+  const validateCoupon = async (code: string, cartTotal: number) => {
+    // Mock coupon validation
+    // In a real app, you would query the 'coupons' collection in Firestore
+    if (code.toUpperCase() === 'NUR10') {
+      return cartTotal * 0.1; // 10% discount
+    }
+    if (code.toUpperCase() === 'NUR50') {
+      return 50; // Flat 50 BDT discount
+    }
+    return 0;
+  };
+
+  const placeOrder = async (shippingDetails: any, paymentMethod: any, discountAmount: number = 0, usedPoints: number = 0) => {
     if (!user || !db) return false;
     
     try {
@@ -308,16 +344,36 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           }
         }
 
-        // 2. Calculate totals (re-calculate for security)
+        // Check points if used
+        const userRef = doc(db!, "users", user.id);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("User not found");
+        const currentPoints = userDoc.data().points || 0;
+        if (usedPoints > currentPoints) {
+          throw new Error("Insufficient points");
+        }
+
+        // 2. Calculate totals
         const subTotal = cart.reduce((acc, item) => {
-          const discountedPrice = item.price - (item.price * item.discountPercentage / 100);
-          return acc + (discountedPrice * item.quantity);
+          const price = calculateAppliedPrice(item, item.quantity);
+          return acc + (price * item.quantity);
         }, 0);
+        
+        const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
         
         let shippingCost = 0;
         if (subTotal <= 5000) {
-          shippingCost = shippingDetails.city === 'Sylhet' ? DELIVERY_CHARGE_INSIDE : DELIVERY_CHARGE_OUTSIDE;
+          if (totalItems >= 100) {
+            shippingCost = 300;
+          } else if (totalItems >= 51) {
+            shippingCost = 200;
+          } else {
+            shippingCost = shippingDetails.city === 'Sylhet' ? DELIVERY_CHARGE_INSIDE : DELIVERY_CHARGE_OUTSIDE;
+          }
         }
+
+        const pointsDiscount = usedPoints; // 1 point = 1 BDT discount (or whatever rule)
+        const finalTotal = Math.max(0, subTotal + shippingCost - discountAmount - pointsDiscount);
 
         const newOrder: Order = {
           id: `ORD-${Date.now()}`,
@@ -325,8 +381,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           items: [...cart],
           totalAmount: subTotal,
           deliveryCharge: shippingCost,
-          discountAmount: 0,
-          finalTotal: subTotal + shippingCost,
+          discountAmount: discountAmount + pointsDiscount,
+          finalTotal: finalTotal,
           status: OrderStatus.PENDING,
           paymentMethod,
           shippingAddress: shippingDetails.address,
@@ -335,30 +391,23 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         };
 
         // 3. Perform updates
-        // Create Order
         const orderRef = doc(db!, "orders", newOrder.id);
         transaction.set(orderRef, newOrder);
 
-        // Update Stock
         for (const item of cart) {
           const productRef = doc(db!, "products", item.id);
-          const productDoc = await transaction.get(productRef); // Need to get again or rely on previous get? 
-          // Firestore transactions require reads before writes. We read all above.
-          // However, we can just use increment(-quantity) but we need to ensure it doesn't go below zero.
-          // Since we checked above in the same transaction, it's safe.
+          const productDoc = await transaction.get(productRef); 
           const newStock = productDoc.data()!.stock - item.quantity;
           transaction.update(productRef, { stock: newStock });
         }
 
-        // Update User Points
-        const pointsEarned = Math.floor(subTotal / 100);
-        const userRef = doc(db!, "users", user.id);
-        transaction.update(userRef, { points: user.points + pointsEarned });
+        // Update User Points (Earned - Used)
+        const pointsEarned = Math.floor(finalTotal / 100);
+        const newPoints = currentPoints - usedPoints + pointsEarned;
+        transaction.update(userRef, { points: newPoints });
         
-        // Update local state after successful transaction
-        const updatedUser = { ...user, points: user.points + pointsEarned };
+        const updatedUser = { ...user, points: newPoints };
         setUser(updatedUser);
-        localStorage.setItem('nur_user', JSON.stringify(updatedUser));
       });
 
       clearCart();
@@ -438,13 +487,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const cartTotal = cart.reduce((acc, item) => {
-    const price = item.price - (item.price * item.discountPercentage / 100);
+    const price = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
     return acc + (price * item.quantity);
   }, 0);
 
   return (
     <StoreContext.Provider value={{
-      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, setTheme, setLanguage, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast
+      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, setTheme, setLanguage, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
     }}>
       {children}
     </StoreContext.Provider>

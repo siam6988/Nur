@@ -18,11 +18,25 @@ export const LoadingSpinner: React.FC = () => {
 };
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
-  const { addToCart, wishlist, toggleWishlist, language } = useStore();
+  const { addToCart, wishlist, toggleWishlist, language, user, t } = useStore();
   const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
   
   const isWishlisted = wishlist.some(item => item.id === product.id);
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
+
+  // Wholesale pricing logic
+  let priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">৳{discountedPrice}</span>;
+  
+  if (product.isWholesale) {
+    if (!user) {
+      priceDisplay = <span className="text-accent font-bold text-xs md:text-sm">{t('loginToSeePrice')}</span>;
+    } else if (product.tierPricing && product.tierPricing.length > 0) {
+      const prices = product.tierPricing.map(t => t.price);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">৳{minPrice} - ৳{maxPrice}</span>;
+    }
+  }
 
   return (
     <div className="group bg-white dark:bg-darkCard rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-darkBorder cursor-pointer relative h-full flex flex-col">
@@ -34,9 +48,14 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
           />
         </Link>
-        {product.discountPercentage > 0 && (
+        {product.discountPercentage > 0 && !product.isWholesale && (
           <span className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
             -{product.discountPercentage}%
+          </span>
+        )}
+        {product.isWholesale && product.minimumOrderQuantity && (
+          <span className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+            MOQ: {product.minimumOrderQuantity}
           </span>
         )}
         <button 
@@ -57,8 +76,8 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         
         <div className="mt-auto">
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-primary dark:text-white font-bold text-sm md:text-lg">৳{discountedPrice}</span>
-            {product.discountPercentage > 0 && (
+            {priceDisplay}
+            {product.discountPercentage > 0 && !product.isWholesale && (
               <span className="text-gray-400 dark:text-gray-600 text-[10px] md:text-xs line-through">৳{product.price}</span>
             )}
           </div>
@@ -74,7 +93,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                addToCart(product, product.sizes?.[0] || 'Free Size');
+                addToCart(product, product.sizes?.[0] || 'Free Size', product.isWholesale ? (product.minimumOrderQuantity || 1) : 1);
               }}
               className="flex items-center gap-1.5 bg-primary hover:bg-blue-700 text-white text-[10px] md:text-xs font-medium px-3 py-1.5 rounded-full transition shadow-sm"
               title="Add to Cart"

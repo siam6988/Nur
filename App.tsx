@@ -4,6 +4,7 @@ import { StoreProvider } from './context/StoreContext';
 import { Layout } from './components/Layout';
 import Home from './pages/Home';
 import { Shop, ProductDetails } from './pages/ProductPages';
+import { Wholesale } from './pages/Wholesale';
 import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
 import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy } from './pages/StaticPages';
 import Admin from './pages/Admin';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
+            <Route path="/wholesale" element={<Wholesale />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />

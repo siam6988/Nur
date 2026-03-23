@@ -15,26 +15,21 @@ const Admin: React.FC = () => {
   const [loadingOrders, setLoadingOrders] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'orders') {
-      fetchOrders();
-    }
-  }, [activeTab]);
-
-  const fetchOrders = async () => {
-    if (!db) return;
-    setLoadingOrders(true);
-    try {
+    if (activeTab === 'orders' && db) {
+      setLoadingOrders(true);
       const q = query(collection(db, "orders"), orderBy("date", "desc"));
-      const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      setOrders(ordersData);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      showToast("Failed to fetch orders", "error");
-    } finally {
-      setLoadingOrders(false);
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        setOrders(ordersData);
+        setLoadingOrders(false);
+      }, (error) => {
+        console.error("Error fetching orders:", error);
+        showToast("Failed to fetch orders", "error");
+        setLoadingOrders(false);
+      });
+      return () => unsubscribe();
     }
-  };
+  }, [activeTab, db]);
 
   const handleStockChange = (id: string, value: string) => {
     const numValue = parseInt(value);
@@ -70,7 +65,6 @@ const Admin: React.FC = () => {
     setSaving(orderId);
     try {
       await updateDoc(doc(db, "orders", orderId), { status: newStatus });
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       showToast(`Order status updated to ${newStatus}`, "success");
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -192,12 +186,15 @@ const Admin: React.FC = () => {
                   <div>
                     <h4 className="font-bold text-sm mb-2 dark:text-gray-300">Items:</h4>
                     <div className="space-y-2">
-                      {order.items.map(item => (
+                      {order.items.map(item => {
+                        const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
+                        return (
                         <div key={item.cartId} className="flex justify-between items-center text-sm">
                           <span className="dark:text-gray-400">{item.name_en} (x{item.quantity}) - Size: {item.selectedSize}</span>
-                          <span className="font-medium dark:text-gray-300">৳{(item.price - (item.price * item.discountPercentage / 100)) * item.quantity}</span>
+                          <span className="font-medium dark:text-gray-300">৳{currentPrice * item.quantity}</span>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </Card>

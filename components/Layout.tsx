@@ -131,7 +131,14 @@ export const Navbar: React.FC = () => {
       {/* Categories Bar - Desktop */}
       <div className="hidden md:block border-t border-gray-100 dark:border-darkBorder bg-white dark:bg-darkCard">
         <div className="container mx-auto px-4">
-          <div className="flex space-x-8 py-2 overflow-x-auto no-scrollbar">
+          <div className="flex space-x-8 py-2 overflow-x-auto no-scrollbar items-center">
+            <Link to="/shop" className="text-sm font-bold text-primary dark:text-white hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
+              <ShoppingCart size={14} /> {t('retail')}
+            </Link>
+            <Link to="/wholesale" className="text-sm font-bold text-accent hover:text-yellow-600 whitespace-nowrap flex items-center gap-1">
+              <ShoppingCart size={14} /> {t('wholesale')}
+            </Link>
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
             {categories.map(cat => (
               <Link key={cat.id} to={`/shop?category=${cat.id}`} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white whitespace-nowrap">
                 {language === 'bn' ? cat.name_bn : cat.name_en}
@@ -144,6 +151,13 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu Drawer */}
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-darkCard border-t border-gray-100 dark:border-darkBorder py-2">
+            <Link to="/shop" className="block px-4 py-2 text-sm font-bold text-primary dark:text-white" onClick={() => setIsMenuOpen(false)}>
+              {t('retail')}
+            </Link>
+            <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
+              {t('wholesale')}
+            </Link>
+            <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
               <Link key={cat.id} to={`/shop?category=${cat.id}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
                 {language === 'bn' ? cat.name_bn : cat.name_en}

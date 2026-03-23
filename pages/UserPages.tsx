@@ -32,7 +32,7 @@ export const Cart: React.FC = () => {
         {/* Cart Items */}
         <div className="flex-1 space-y-4">
           {cart.map(item => {
-             const discountedPrice = item.price - (item.price * item.discountPercentage / 100);
+             const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
              const displayName = language === 'bn' ? (item.name_bn || item.name) : item.name;
              return (
               <Card key={item.cartId} className="flex gap-4 items-center !p-4">
@@ -40,9 +40,16 @@ export const Cart: React.FC = () => {
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-800 dark:text-white line-clamp-1">{displayName}</h3>
                   <p className="text-xs text-gray-500 mb-2">Size: {item.selectedSize}</p>
+                  {item.isWholesale && (
+                    <span className="inline-block bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded mb-1">
+                      {t('wholesale')}
+                    </span>
+                  )}
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-primary dark:text-white">৳{discountedPrice}</span>
-                    <span className="text-xs text-gray-400 line-through">৳{item.price}</span>
+                    <span className="font-bold text-primary dark:text-white">৳{currentPrice}</span>
+                    {(!item.isWholesale && item.discountPercentage > 0) && (
+                      <span className="text-xs text-gray-400 line-through">৳{item.price}</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -100,7 +107,7 @@ export const Cart: React.FC = () => {
 
 // --- Checkout Page ---
 export const Checkout: React.FC = () => {
-  const { cart, user, cartTotal, placeOrder, t, language } = useStore();
+  const { cart, user, cartTotal, placeOrder, t, language, validateCoupon, showToast } = useStore();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -111,6 +118,12 @@ export const Checkout: React.FC = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.COD);
   const [loading, setLoading] = useState(false);
+  
+  // Coupon & Points State
+  const [couponCode, setCouponCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsDiscount, setPointsDiscount] = useState(0);
 
   if (!user) {
     return (
@@ -123,13 +136,39 @@ export const Checkout: React.FC = () => {
 
   const isSylhet = formData.city === 'Sylhet';
   const shippingCost = cartTotal > 5000 ? 0 : (isSylhet ? DELIVERY_CHARGE_INSIDE : DELIVERY_CHARGE_OUTSIDE);
-  const total = cartTotal + shippingCost;
+  
+  // Calculate total
+  const total = Math.max(0, cartTotal + shippingCost - discountAmount - pointsDiscount);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    const discount = await validateCoupon(couponCode, cartTotal);
+    if (discount > 0) {
+      setDiscountAmount(discount);
+      showToast(`Coupon applied! You saved ৳${discount}`, 'success');
+    } else {
+      setDiscountAmount(0);
+      showToast('Invalid or expired coupon', 'error');
+    }
+  };
+
+  const handleUsePoints = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setUsePoints(checked);
+    if (checked && user.points && user.points > 0) {
+      // Assuming 1 point = 1 BDT
+      const maxPointsToUse = Math.min(user.points, cartTotal + shippingCost - discountAmount);
+      setPointsDiscount(maxPointsToUse);
+    } else {
+      setPointsDiscount(0);
+    }
+  };
 
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setTimeout(async () => {
-      const success = await placeOrder(formData, paymentMethod);
+      const success = await placeOrder(formData, paymentMethod, discountAmount, pointsDiscount);
       setLoading(false);
       if(success) {
         navigate('/orders');
@@ -196,16 +235,61 @@ export const Checkout: React.FC = () => {
           <Card>
              <h3 className="font-bold text-lg mb-4" data-key="yourOrder">{t('yourOrder')}</h3>
              <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1 no-scrollbar">
-               {cart.map(item => (
+               {cart.map(item => {
+                 const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
+                 return (
                  <div key={item.cartId} className="flex justify-between text-sm">
                    <span className="text-gray-600 dark:text-gray-400">{language === 'bn' ? (item.name_bn || item.name) : item.name} <span className="text-xs text-gray-400">x {item.quantity}</span></span>
-                   <span className="font-medium dark:text-white">৳{(item.price - (item.price * item.discountPercentage / 100)) * item.quantity}</span>
+                   <span className="font-medium dark:text-white">৳{currentPrice * item.quantity}</span>
                  </div>
-               ))}
+                 );
+               })}
              </div>
              <div className="border-t dark:border-darkBorder pt-4 space-y-2 text-sm">
                <div className="flex justify-between"><span data-key="subtotal">{t('subtotal')}</span><span>৳{cartTotal}</span></div>
                <div className="flex justify-between"><span data-key="deliveryCharge">{t('deliveryCharge')}</span><span>৳{shippingCost}</span></div>
+               
+               {/* Coupon Section */}
+               <div className="pt-2 pb-2">
+                 <div className="flex gap-2">
+                   <input 
+                     type="text" 
+                     placeholder="Coupon Code" 
+                     value={couponCode}
+                     onChange={(e) => setCouponCode(e.target.value)}
+                     className="flex-1 border dark:border-darkBorder dark:bg-darkBg dark:text-white rounded p-2 text-sm"
+                   />
+                   <Button type="button" onClick={handleApplyCoupon} className="px-3 py-2 text-sm">Apply</Button>
+                 </div>
+               </div>
+               {discountAmount > 0 && (
+                 <div className="flex justify-between text-green-600 dark:text-green-400">
+                   <span>Discount</span>
+                   <span>-৳{discountAmount}</span>
+                 </div>
+               )}
+
+               {/* Points Section */}
+               {user?.points ? (
+                 <div className="pt-2 pb-2 border-t dark:border-darkBorder">
+                   <label className="flex items-center gap-2 cursor-pointer">
+                     <input 
+                       type="checkbox" 
+                       checked={usePoints}
+                       onChange={handleUsePoints}
+                       className="w-4 h-4 text-primary"
+                     />
+                     <span className="text-sm dark:text-gray-300">Use Points (Available: {user.points})</span>
+                   </label>
+                 </div>
+               ) : null}
+               {pointsDiscount > 0 && (
+                 <div className="flex justify-between text-green-600 dark:text-green-400">
+                   <span>Points Discount</span>
+                   <span>-৳{pointsDiscount}</span>
+                 </div>
+               )}
+
                <div className="flex justify-between font-bold text-lg text-primary dark:text-white pt-2 border-t dark:border-darkBorder mt-2">
                  <span data-key="totalPayable">{t('totalPayable')}</span>
                  <span>৳{total}</span>
@@ -245,12 +329,18 @@ export const Wishlist: React.FC = () => {
 
 // --- Profile Page ---
 export const Profile: React.FC = () => {
-  const { user, orders, logout, cancelOrder, theme, setTheme, updateProfile, t, language } = useStore();
+  const { user, orders, logout, cancelOrder, theme, setTheme, updateProfile, t, language, addReview } = useStore();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
   const [editAvatar, setEditAvatar] = useState(user?.avatar || 'https://picsum.photos/seed/user_avatar/100/100');
+
+  // Review Modal State
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
 
   React.useEffect(() => {
     if (user) {
@@ -276,6 +366,20 @@ export const Profile: React.FC = () => {
   const handleSaveProfile = () => {
     updateProfile(editName, editAvatar);
     setIsEditing(false);
+  };
+
+  const handleOpenReview = (productId: string) => {
+    setReviewProductId(productId);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewModalOpen(true);
+  };
+
+  const handleSubmitReview = () => {
+    if (reviewProductId && reviewComment.trim()) {
+      addReview(reviewProductId, reviewRating, reviewComment);
+      setReviewModalOpen(false);
+    }
   };
 
   const filteredOrders = orders.filter(order => filterStatus === 'ALL' || order.status === filterStatus);
@@ -394,8 +498,15 @@ export const Profile: React.FC = () => {
                    </div>
                  </div>
                  {order.items.map((item, idx) => (
-                   <div key={idx} className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                     {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity}
+                   <div key={idx} className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+                     <div>
+                       {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - ৳{(item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100))) * item.quantity}
+                     </div>
+                     {order.status === OrderStatus.DELIVERED && (
+                       <Button variant="outline" size="sm" onClick={() => handleOpenReview(item.id)} className="text-xs py-1 h-auto">
+                         Leave Review
+                       </Button>
+                     )}
                    </div>
                  ))}
                </Card>
@@ -408,13 +519,49 @@ export const Profile: React.FC = () => {
            </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md relative">
+            <button onClick={() => setReviewModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold mb-4 dark:text-white">Leave a Review</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2 dark:text-gray-300">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button key={star} onClick={() => setReviewRating(star)} className={`text-2xl ${star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2 dark:text-gray-300">Comment</label>
+              <textarea 
+                value={reviewComment} 
+                onChange={e => setReviewComment(e.target.value)} 
+                className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white rounded p-2" 
+                rows={4} 
+                placeholder="Write your review here..."
+              ></textarea>
+            </div>
+            <Button onClick={handleSubmitReview} className="w-full" disabled={!reviewComment.trim()}>Submit Review</Button>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
 
+import { auth } from '../firebase-config';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+
 // --- Login Page ---
 export const Login: React.FC = () => {
-  const { login, t } = useStore();
+  const { t, showToast } = useStore();
   const navigate = useNavigate();
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
@@ -423,14 +570,38 @@ export const Login: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      showToast("Firebase Auth is not initialized.", "error");
+      return;
+    }
     setLoading(true);
     try {
-      await login(email, 'User');
+      if (isLoginView) {
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast(t('loginSuccess') || 'Logged in successfully');
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showToast(t('signupSuccess') || 'Account created successfully');
+      }
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      showToast(error.message, "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!auth) return;
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      showToast(t('loginSuccess') || 'Logged in successfully');
+      navigate('/');
+    } catch (error: any) {
+      console.error(error);
+      showToast(error.message, "error");
     }
   };
 
@@ -444,6 +615,17 @@ export const Login: React.FC = () => {
           <Button type="submit" className="w-full py-3" disabled={loading}>
             {loading ? <div className="flex items-center justify-center gap-2"><LoadingSpinner /> <span data-key="processing">{t('processing')}</span></div> : (isLoginView ? t('login') : t('signupTitle'))}
           </Button>
+          
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-darkBorder"></div></div>
+            <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-darkCard text-gray-500">Or continue with</span></div>
+          </div>
+          
+          <Button type="button" variant="outline" onClick={handleGoogleLogin} className="w-full py-3 flex items-center justify-center gap-2 border-gray-300 dark:border-darkBorder dark:text-white">
+            <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google
+          </Button>
+
           <button type="button" onClick={() => setIsLoginView(!isLoginView)} className="w-full text-sm text-primary dark:text-accent hover:underline mt-4" data-key={isLoginView ? 'noAccount' : 'haveAccount'}>
             {isLoginView ? t('noAccount') : t('haveAccount')}
           </button>

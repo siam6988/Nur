@@ -30,6 +30,12 @@ export interface Review {
   date: string;
 }
 
+export interface TierPrice {
+  min: number;
+  max: number | null;
+  price: number;
+}
+
 export interface Product {
   id: string;
   name_en: string;
@@ -48,6 +54,10 @@ export interface Product {
   rating: number;
   totalSales: number;
   isFreeShipping: boolean;
+  // Wholesale features
+  isWholesale?: boolean;
+  minimumOrderQuantity?: number;
+  tierPricing?: TierPrice[];
   // Legacy fields for compatibility (optional)
   name?: string;
   description?: string;
@@ -69,6 +79,7 @@ export interface CartItem extends Product {
   cartId: string; // Unique ID for cart entry (to handle same product different sizes)
   selectedSize: string;
   quantity: number;
+  appliedPrice: number; // The price applied after tier calculation or discount
 }
 
 export interface Order {

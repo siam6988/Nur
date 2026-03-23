@@ -17,6 +17,7 @@ export const Shop: React.FC = () => {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState('default');
+  const [showWholesale, setShowWholesale] = useState(false);
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -29,6 +30,9 @@ export const Shop: React.FC = () => {
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products.filter(p => {
+      if (!showWholesale && p.isWholesale) return false;
+      if (showWholesale && !p.isWholesale) return false;
+      
       const matchesCategory = filterCat === 'all' || p.categoryId === filterCat || p.category === filterCat;
       const nameEn = p.name_en || p.name || '';
       const nameBn = p.name_bn || '';
@@ -55,6 +59,7 @@ export const Shop: React.FC = () => {
     setMinPrice('');
     setMaxPrice('');
     setSortBy('default');
+    setShowWholesale(false);
     navigate('/shop');
   };
 
@@ -90,10 +95,23 @@ export const Shop: React.FC = () => {
             
             <div>
               <h4 className="font-bold mb-4 text-xs text-gray-400 uppercase tracking-widest" data-key="priceRange">{t('priceRange')}</h4>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mb-8">
                 <input type="number" placeholder={t('min')} value={minPrice} onChange={e => setMinPrice(e.target.value)} className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white p-2 text-sm rounded-md focus:ring-1 focus:ring-primary outline-none" />
                 <input type="number" placeholder={t('max')} value={maxPrice} onChange={e => setMaxPrice(e.target.value)} className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white p-2 text-sm rounded-md focus:ring-1 focus:ring-primary outline-none" />
               </div>
+            </div>
+
+            <div>
+              <h4 className="font-bold mb-4 text-xs text-gray-400 uppercase tracking-widest">Type</h4>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={showWholesale} 
+                  onChange={(e) => setShowWholesale(e.target.checked)} 
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-sm dark:text-gray-300">Wholesale Products</span>
+              </label>
             </div>
           </Card>
         </div>
@@ -146,19 +164,27 @@ export const Shop: React.FC = () => {
 export const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, addToCart, toggleWishlist, wishlist, addReview, user, orders, isLoading, t, language, addToRecentlyViewed } = useStore();
+  const { products, addToCart, toggleWishlist, wishlist, addReview, user, orders, isLoading, t, language, addToRecentlyViewed, calculateAppliedPrice } = useStore();
   const product = products.find(p => p.id === id);
   const [selectedSize, setSelectedSize] = useState<string>(product?.sizes[0] || '');
   const [mainImage, setMainImage] = useState(product?.images[0] || '');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [zoomStyle, setZoomStyle] = useState({ opacity: 0, backgroundPosition: '0% 0%' });
+  const [quantity, setQuantity] = useState<number>(1);
+  const [quantityError, setQuantityError] = useState<string>('');
 
   useEffect(() => {
     if (product) {
       setSelectedSize(product.sizes[0]);
       setMainImage(product.images[0]);
       addToRecentlyViewed(product);
+      if (product.isWholesale && product.minimumOrderQuantity) {
+        setQuantity(product.minimumOrderQuantity);
+      } else {
+        setQuantity(1);
+      }
+      setQuantityError('');
     }
   }, [product]);
 
@@ -181,6 +207,53 @@ export const ProductDetails: React.FC = () => {
 
   const handleMouseLeave = () => {
     setZoomStyle({ opacity: 0, backgroundPosition: '0% 0%' });
+  };
+
+  const currentPrice = product.isWholesale ? calculateAppliedPrice(product as any, quantity) : discountedPrice;
+  const totalPrice = currentPrice * quantity;
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    if (!isNaN(val)) {
+      setQuantity(val);
+      if (product.isWholesale && product.minimumOrderQuantity && val < product.minimumOrderQuantity) {
+        setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+      } else {
+        setQuantityError('');
+      }
+    } else if (e.target.value === '') {
+      setQuantity(0 as any); // allow empty temporarily while typing
+      if (product.isWholesale && product.minimumOrderQuantity) {
+        setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+      }
+    }
+  };
+
+  const handleQuantityBlur = () => {
+    if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      setQuantity(product.minimumOrderQuantity);
+      setQuantityError('');
+    } else if (quantity < 1 || isNaN(quantity)) {
+      setQuantity(product.isWholesale && product.minimumOrderQuantity ? product.minimumOrderQuantity : 1);
+      setQuantityError('');
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+      return;
+    }
+    addToCart(product, selectedSize, quantity);
+  };
+
+  const handleBuyNow = () => {
+    if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+      return;
+    }
+    addToCart(product, selectedSize, quantity);
+    navigate('/checkout');
   };
 
   return (
@@ -206,7 +279,7 @@ export const ProductDetails: React.FC = () => {
              </div>
              <div className="flex gap-2 overflow-x-auto no-scrollbar">
                {product.images.map((img, idx) => (
-                 <button key={idx} onClick={() => setMainImage(img)} className={`w-16 h-16 rounded-lg border-2 ${mainImage === img ? 'border-primary' : 'border-gray-200 dark:border-darkBorder'}`}>
+                 <button key={idx} onClick={() => setMainImage(img)} className={`w-16 h-16 rounded-lg border-2 flex-shrink-0 ${mainImage === img ? 'border-primary' : 'border-gray-200 dark:border-darkBorder'}`}>
                    <img src={img} alt="thumb" className="w-full h-full object-cover rounded-md" />
                  </button>
                ))}
@@ -214,40 +287,145 @@ export const ProductDetails: React.FC = () => {
            </div>
 
            <div>
-             <h1 className="text-2xl md:text-4xl font-bold dark:text-white mb-4">{displayName}</h1>
+             <h1 className="text-2xl md:text-4xl font-bold dark:text-white mb-2">{displayName}</h1>
+             
+             {product.isWholesale && (
+               <div className="mb-4 inline-block bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full">
+                 {t('wholesale')}
+               </div>
+             )}
+
              <div className="flex items-center gap-4 mb-6">
                 <RatingStars rating={product.rating} />
                 <span className="text-sm text-gray-500">({product.reviews.length} {t('reviews')})</span>
              </div>
+             
              <div className="bg-gray-50 dark:bg-darkBg p-6 rounded-2xl border dark:border-darkBorder mb-8">
-               <span className="text-4xl font-bold text-primary dark:text-white">৳{discountedPrice}</span>
-               {product.discountPercentage > 0 && <span className="text-gray-400 line-through ml-4">৳{product.price}</span>}
+               {product.isWholesale ? (
+                 !user ? (
+                   <div className="text-xl font-bold text-accent">{t('loginToSeePrice')}</div>
+                 ) : (
+                   <div>
+                     <div className="flex items-end gap-2 mb-2">
+                       <span className="text-4xl font-bold text-primary dark:text-white">৳{currentPrice}</span>
+                       <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">/ unit</span>
+                     </div>
+                     <div className="text-sm text-gray-600 dark:text-gray-400">
+                       Total: <span className="font-bold text-gray-900 dark:text-white">৳{totalPrice}</span> for {quantity} units
+                     </div>
+                   </div>
+                 )
+               ) : (
+                 <div>
+                   <span className="text-4xl font-bold text-primary dark:text-white">৳{discountedPrice}</span>
+                   {product.discountPercentage > 0 && <span className="text-gray-400 line-through ml-4">৳{product.price}</span>}
+                 </div>
+               )}
              </div>
+
+             {product.isWholesale && user && product.tierPricing && product.tierPricing.length > 0 && (
+               <div className="mb-8">
+                 <h4 className="font-bold text-sm mb-3 dark:text-white">{t('tierPricing')}</h4>
+                 <div className="bg-white dark:bg-darkCard border dark:border-darkBorder rounded-lg overflow-hidden">
+                   <table className="w-full text-sm text-left">
+                     <thead className="bg-gray-50 dark:bg-darkBg text-gray-600 dark:text-gray-400">
+                       <tr>
+                         <th className="px-4 py-2 font-medium">Quantity</th>
+                         <th className="px-4 py-2 font-medium">Price / Unit</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-100 dark:divide-darkBorder">
+                       {product.tierPricing.map((tier, idx) => (
+                         <tr key={idx} className={quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}>
+                           <td className="px-4 py-2 dark:text-gray-300">
+                             {tier.minQuantity} {tier.maxQuantity ? `- ${tier.maxQuantity}` : '+'}
+                           </td>
+                           <td className="px-4 py-2 font-bold text-primary dark:text-white">৳{tier.price}</td>
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
+             )}
              
              <div className="mb-8">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">{displayDescription}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed whitespace-pre-wrap">{displayDescription}</p>
 
-               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4" data-key="selectSize">{t('selectSize')}</p>
-               <div className="flex gap-2 flex-wrap">
-                 {product.sizes.map(size => (
-                   <button key={size} onClick={() => setSelectedSize(size)} className={`px-5 py-2 rounded-lg font-bold border ${selectedSize === size ? 'bg-primary text-white border-primary' : 'border-gray-200 dark:border-darkBorder dark:text-gray-300'}`}>{size}</button>
-                 ))}
+               {product.sizes && product.sizes.length > 0 && (
+                 <>
+                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4" data-key="selectSize">{t('selectSize')}</p>
+                   <div className="flex gap-2 flex-wrap mb-6">
+                     {product.sizes.map(size => (
+                       <button key={size} onClick={() => setSelectedSize(size)} className={`px-5 py-2 rounded-lg font-bold border ${selectedSize === size ? 'bg-primary text-white border-primary' : 'border-gray-200 dark:border-darkBorder dark:text-gray-300'}`}>{size}</button>
+                     ))}
+                   </div>
+                 </>
+               )}
+
+               <div className="mb-6">
+                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quantity</p>
+                 <div className="flex items-center gap-4">
+                   <div className="flex items-center border dark:border-darkBorder rounded-lg overflow-hidden">
+                     <button 
+                       onClick={() => {
+                         const newQ = Math.max(product.isWholesale ? (product.minimumOrderQuantity || 1) : 1, quantity - 1);
+                         setQuantity(newQ);
+                         setQuantityError('');
+                       }}
+                       className="px-4 py-2 bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white transition"
+                     >
+                       <Minus size={16} />
+                     </button>
+                     <input 
+                       type="number" 
+                       value={quantity || ''}
+                       onChange={handleQuantityChange}
+                       onBlur={handleQuantityBlur}
+                       className="w-16 text-center py-2 border-x dark:border-darkBorder dark:bg-darkCard dark:text-white outline-none"
+                       min={product.isWholesale ? (product.minimumOrderQuantity || 1) : 1}
+                     />
+                     <button 
+                       onClick={() => {
+                         setQuantity(quantity + 1);
+                         setQuantityError('');
+                       }}
+                       className="px-4 py-2 bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white transition"
+                     >
+                       <Plus size={16} />
+                     </button>
+                   </div>
+                   {product.isWholesale && product.minimumOrderQuantity && (
+                     <span className="text-sm text-gray-500 dark:text-gray-400">
+                       MOQ: {product.minimumOrderQuantity} units
+                     </span>
+                   )}
+                 </div>
+                 {quantityError && <p className="text-red-500 text-sm mt-2">{quantityError}</p>}
                </div>
              </div>
 
              <div className="flex gap-4">
-               <Button onClick={() => addToCart(product, selectedSize)} className="flex-1 py-4 text-xl shadow-lg shadow-primary/20" data-key="addToCart">{t('addToCart')}</Button>
                <Button 
-                 onClick={() => {
-                   addToCart(product, selectedSize);
-                   navigate('/checkout');
-                 }} 
+                 onClick={handleAddToCart} 
+                 className="flex-1 py-4 text-xl shadow-lg shadow-primary/20" 
+                 data-key="addToCart"
+                 disabled={product.isWholesale && !user}
+               >
+                 {t('addToCart')}
+               </Button>
+               <Button 
+                 onClick={handleBuyNow} 
                  className="flex-1 py-4 text-xl bg-accent hover:bg-yellow-600 text-white shadow-lg shadow-accent/20"
                  data-key="shopNow"
+                 disabled={product.isWholesale && !user}
                >
                  {t('shopNow')}
                </Button>
              </div>
+             {product.isWholesale && !user && (
+               <p className="text-sm text-accent mt-2 text-center">{t('loginToSeePrice')}</p>
+             )}
            </div>
          </div>
        </Card>
