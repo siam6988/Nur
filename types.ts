@@ -25,12 +25,9 @@ export interface Review {
   id: string;
   userId: string;
   userName: string;
-  productId: string;
-  productName: string;
   rating: number;
   comment: string;
-  createdAt: any;
-  date?: string;
+  date: string;
 }
 
 export interface TierPrice {
@@ -46,25 +43,25 @@ export interface Product {
   description_en: string;
   description_bn: string;
   price: number;
-  discountPercentage?: number;
-  discount?: number;
-  discountType?: "percentage" | "fixed";
+  discountPercentage: number;
   stock: number;
   sizes: string[];
   images: string[];
-  image?: string;
   categoryId: string;
-  category?: string;
   isActive: boolean;
-  createdAt: any;
+  createdAt: string;
+  reviews: Review[];
   rating: number;
   totalSales: number;
   isFreeShipping: boolean;
+  // Wholesale features
   isWholesale?: boolean;
   minimumOrderQuantity?: number;
   tierPricing?: TierPrice[];
+  // Legacy fields for compatibility (optional)
   name?: string;
   description?: string;
+  category?: string; 
 }
 
 export interface Category {
@@ -72,35 +69,31 @@ export interface Category {
   name_en: string;
   name_bn: string;
   image: string;
-  isVisible?: boolean;
-  isActive?: boolean;
-  createdAt: any;
+  isVisible: boolean;
+  createdAt: string;
+  // Legacy
   name?: string;
 }
 
 export interface CartItem extends Product {
-  cartId: string;
+  cartId: string; // Unique ID for cart entry (to handle same product different sizes)
   selectedSize: string;
   quantity: number;
-  appliedPrice: number;
+  appliedPrice: number; // The price applied after tier calculation or discount
 }
 
 export interface Order {
   id: string;
   userId: string;
-  userEmail: string;
   items: CartItem[];
   totalAmount: number;
   deliveryCharge: number;
   discountAmount: number;
-  total: number;
   finalTotal: number;
-  status: OrderStatus | string;
-  paymentMethod: PaymentMethod | string;
-  shippingAddress: any;
-  address: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  shippingAddress: string;
   contactNumber: string;
-  createdAt: any;
   date: string;
 }
 
@@ -109,17 +102,4 @@ export interface Banner {
   imageUrl: string;
   title: string;
   link: string;
-  isActive?: boolean;
-  offerText?: string;
-}
-
-export interface Coupon {
-  id: string;
-  code: string;
-  discountType: "percentage" | "fixed";
-  discountValue: number;
-  expiryDate: string;
-  usageLimit: number;
-  usedCount: number;
-  isActive: boolean;
 }

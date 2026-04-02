@@ -192,8 +192,8 @@ export const ProductDetails: React.FC = () => {
   if (!product) return <div className="p-10 text-center dark:text-white">Product not found</div>;
 
   const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
-  const canReview = user && orders.some(order => order.items.some(item => item.id === product.id));
-  const hasPurchased = user && orders.some(order => order.items.some(item => item.id === product.id));
+  const canReview = user && orders.some(order => order.status === 'DELIVERED' && order.items.some(item => item.id === product.id));
+  const hasReviewed = user && product.reviews?.some(r => r.userId === user.id);
   
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
   const displayDescription = language === 'bn' ? (product.description_bn || product.description_en) : (product.description_en || product.description);
@@ -336,9 +336,9 @@ export const ProductDetails: React.FC = () => {
                      </thead>
                      <tbody className="divide-y divide-gray-100 dark:divide-darkBorder">
                        {product.tierPricing.map((tier, idx) => (
-                         <tr key={idx} className={quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}>
+                         <tr key={idx} className={quantity >= tier.min && (!tier.max || quantity <= tier.max) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}>
                            <td className="px-4 py-2 dark:text-gray-300">
-                             {tier.minQuantity} {tier.maxQuantity ? `- ${tier.maxQuantity}` : '+'}
+                             {tier.min} {tier.max ? `- ${tier.max}` : '+'}
                            </td>
                            <td className="px-4 py-2 font-bold text-primary dark:text-white">৳{tier.price}</td>
                          </tr>
@@ -458,7 +458,7 @@ export const ProductDetails: React.FC = () => {
            </div>
 
            {/* Add Review Form */}
-           {canReview ? (
+           {canReview && !hasReviewed ? (
              <Card>
                <h3 className="font-bold text-lg mb-4 dark:text-white" data-key="writeReview">{t('writeReview')}</h3>
                <div className="mb-4">
@@ -495,10 +495,15 @@ export const ProductDetails: React.FC = () => {
                  {t('submitReview')}
                </Button>
              </Card>
+           ) : hasReviewed ? (
+             <Card className="flex flex-col items-center justify-center text-center py-10">
+               <Star size={48} className="text-accent mb-4 fill-current" />
+               <p className="text-gray-500 dark:text-gray-400">You have already reviewed this product.</p>
+             </Card>
            ) : (
              <Card className="flex flex-col items-center justify-center text-center py-10">
                <Package size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-               <p className="text-gray-500 dark:text-gray-400">You must purchase this product to leave a review.</p>
+               <p className="text-gray-500 dark:text-gray-400">You must purchase and receive this product to leave a review.</p>
              </Card>
            )}
          </div>

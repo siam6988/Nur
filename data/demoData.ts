@@ -53,7 +53,14 @@ export const demoProducts: Product[] = [
     reviews: [],
     rating: 4.5,
     totalSales: 120,
-    isFreeShipping: true
+    isFreeShipping: true,
+    isWholesale: true,
+    minimumOrderQuantity: 5,
+    tierPricing: [
+      { min: 5, max: 10, price: 2000 },
+      { min: 11, max: 20, price: 1800 },
+      { min: 21, max: null, price: 1500 }
+    ]
   },
   {
     id: 'p2',
