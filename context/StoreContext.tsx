@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Product, CartItem, Order, OrderStatus, Review, Category } from '../types';
+import { User, Product, CartItem, Order, OrderStatus, Review, Category, Currency } from '../types';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
 import { db, auth } from '../firebase-config';
 import { collection, onSnapshot, query, where, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
@@ -24,8 +24,11 @@ interface StoreContextType {
   isLoading: boolean;
   theme: 'light' | 'dark';
   language: 'bn' | 'en';
+  currency: Currency;
   setTheme: (theme: 'light' | 'dark') => void;
   setLanguage: (lang: 'bn' | 'en') => void;
+  setCurrency: (currency: Currency) => void;
+  formatPrice: (priceInBDT: number) => string;
   t: (key: string) => string;
   login: (email: string, name?: string) => Promise<void>;
   logout: () => void;
@@ -60,11 +63,38 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setThemeState] = useState<'light' | 'dark'>('light');
   const [language, setLanguageState] = useState<'bn' | 'en'>('bn');
+  const [currency, setCurrencyState] = useState<Currency>(Currency.BDT);
 
   // Translation helper
   const t = (key: string): string => {
     // @ts-ignore
     return translations[language][key] || key;
+  };
+
+  // Handle Currency Persistence
+  const setCurrency = (newCurrency: Currency) => {
+    setCurrencyState(newCurrency);
+    localStorage.setItem('nur_currency', newCurrency);
+  };
+
+  const formatPrice = (priceInBDT: number): string => {
+    const rates: Record<Currency, number> = {
+      [Currency.BDT]: 1,
+      [Currency.USD]: 0.0091,
+      [Currency.EUR]: 0.0084,
+      [Currency.GBP]: 0.0072,
+      [Currency.INR]: 0.76
+    };
+    const symbols: Record<Currency, string> = {
+      [Currency.BDT]: '৳',
+      [Currency.USD]: '$',
+      [Currency.EUR]: '€',
+      [Currency.GBP]: '£',
+      [Currency.INR]: '₹'
+    };
+    
+    const converted = priceInBDT * rates[currency];
+    return `${symbols[currency]}${converted.toLocaleString(undefined, { minimumFractionDigits: currency === Currency.BDT ? 0 : 2, maximumFractionDigits: currency === Currency.BDT ? 0 : 2 })}`;
   };
 
   // Handle Theme Persistence
@@ -91,12 +121,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const savedRecentlyViewed = localStorage.getItem('nur_recently_viewed');
     const savedTheme = localStorage.getItem('nur_theme') as 'light' | 'dark';
     const savedLanguage = localStorage.getItem('nur_language') as 'bn' | 'en';
+    const savedCurrency = localStorage.getItem('nur_currency') as Currency;
     
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
     if (savedRecentlyViewed) setRecentlyViewed(JSON.parse(savedRecentlyViewed));
     if (savedTheme) setTheme(savedTheme);
     if (savedLanguage) setLanguageState(savedLanguage);
+    if (savedCurrency) setCurrencyState(savedCurrency);
   }, []);
 
   // Auth Listener
@@ -117,6 +149,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             email: firebaseUser.email || '',
             points: 0,
             avatar: firebaseUser.photoURL || 'https://picsum.photos/seed/user_avatar/100/100',
+            role: 'user'
           };
           await setDoc(userRef, newUser);
         }
@@ -493,7 +526,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, setTheme, setLanguage, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
+      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, currency, setTheme, setLanguage, setCurrency, formatPrice, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
     }}>
       {children}
     </StoreContext.Provider>

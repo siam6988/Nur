@@ -11,6 +11,14 @@ export enum PaymentMethod {
   SSL = 'Online Payment (SSLCommerz)'
 }
 
+export enum Currency {
+  BDT = 'BDT',
+  USD = 'USD',
+  EUR = 'EUR',
+  GBP = 'GBP',
+  INR = 'INR'
+}
+
 export interface User {
   id: string;
   name: string;
@@ -19,6 +27,7 @@ export interface User {
   avatar?: string;
   phone?: string;
   address?: string;
+  role?: 'admin' | 'user';
 }
 
 export interface Review {

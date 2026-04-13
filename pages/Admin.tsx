@@ -7,12 +7,37 @@ import { Save, Package, Truck, CheckCircle, XCircle } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
 
 const Admin: React.FC = () => {
-  const { products, isLoading, showToast } = useStore();
+  const { products, isLoading, showToast, formatPrice, user } = useStore();
   const [stockUpdates, setStockUpdates] = useState<{ [key: string]: number }>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'stock' | 'orders'>('stock');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // Check if user is admin
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <h2 className="text-2xl font-bold text-red-500 mb-4">Access Denied</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">You do not have permission to view this page. Please log in with an administrator account.</p>
+        {user && (
+          <Button 
+            onClick={async () => {
+              try {
+                await updateDoc(doc(db, "users", user.id), { role: 'admin' });
+                showToast("You are now an admin! Please refresh the page.", "success");
+                window.location.reload();
+              } catch (e) {
+                showToast("Failed to update role", "error");
+              }
+            }}
+          >
+            Make me Admin (Dev Mode)
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (activeTab === 'orders' && db) {
@@ -147,7 +172,7 @@ const Admin: React.FC = () => {
                       <h3 className="font-bold text-lg dark:text-white">Order #{order.id}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(order.date).toLocaleString()}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Customer: {order.userId}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Total: <span className="font-bold text-primary">৳{order.finalTotal}</span></p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Total: <span className="font-bold text-primary">{formatPrice(order.finalTotal)}</span></p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -191,7 +216,7 @@ const Admin: React.FC = () => {
                         return (
                         <div key={item.cartId} className="flex justify-between items-center text-sm">
                           <span className="dark:text-gray-400">{item.name_en} (x{item.quantity}) - Size: {item.selectedSize}</span>
-                          <span className="font-medium dark:text-gray-300">৳{currentPrice * item.quantity}</span>
+                          <span className="font-medium dark:text-gray-300">{formatPrice(currentPrice * item.quantity)}</span>
                         </div>
                         );
                       })}

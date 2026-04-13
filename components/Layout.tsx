@@ -4,9 +4,10 @@ import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitte
 import { useStore } from '../context/StoreContext';
 import { CATEGORIES } from '../constants';
 import { Toast } from './UIComponents';
+import { Currency } from '../types';
 
 export const Navbar: React.FC = () => {
-  const { cart, user, logout, theme, setTheme, language, setLanguage, t, categories } = useStore();
+  const { cart, user, logout, theme, setTheme, language, setLanguage, currency, setCurrency, t, categories } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
@@ -59,6 +60,24 @@ export const Navbar: React.FC = () => {
           {/* Actions */}
           <div className="flex items-center space-x-2 md:space-x-6">
             
+            {/* Currency Toggle */}
+            <div className="relative group">
+              <button className="flex items-center gap-1 px-2 py-1 rounded-full border border-gray-200 dark:border-darkBorder bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                {currency}
+              </button>
+              <div className="absolute right-0 mt-2 w-24 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder rounded-lg shadow-xl hidden group-hover:block p-1">
+                {Object.values(Currency).map(c => (
+                  <button 
+                    key={c}
+                    onClick={() => setCurrency(c)}
+                    className={`block w-full text-left px-4 py-2 text-sm rounded ${currency === c ? 'bg-primary/10 text-primary dark:text-white font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg'}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Language Toggle */}
             <button 
               onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
@@ -97,6 +116,9 @@ export const Navbar: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder rounded-lg shadow-xl hidden group-hover:block p-2">
                   <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="profile">{t('profile')}</Link>
                   <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="orders">{t('orders')}</Link>
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="block px-4 py-2 text-sm text-primary font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">Admin Panel</Link>
+                  )}
                   <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 rounded" data-key="logout">{t('logout')}</button>
                 </div>
               </div>
@@ -157,6 +179,11 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
               {t('wholesale')}
             </Link>
+            {user?.role === 'admin' && (
+              <Link to="/admin" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
+                Admin Panel
+              </Link>
+            )}
             <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
               <Link key={cat.id} to={`/shop?category=${cat.id}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>

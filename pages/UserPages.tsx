@@ -5,6 +5,7 @@ import { Minus, Plus, Trash2, MapPin, Phone, CreditCard, ShoppingBag, Package, H
 import { Link, useNavigate } from 'react-router-dom';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
 import { PaymentMethod, OrderStatus } from '../types';
+import { motion } from 'motion/react';
 
 // --- Cart Page ---
 export const Cart: React.FC = () => {
@@ -12,15 +13,33 @@ export const Cart: React.FC = () => {
   
   if (cart.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <div className="inline-flex bg-gray-100 dark:bg-darkCard p-6 rounded-full mb-4">
-           <ShoppingBag size={48} className="text-gray-400" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2" data-key="yourCartEmpty">{t('yourCartEmpty')}</h2>
-        <p className="text-gray-500 mb-6" data-key="noItemsAdded">{t('noItemsAdded')}</p>
-        <Link to="/shop">
-          <Button data-key="startShopping">{t('startShopping')}</Button>
-        </Link>
+      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[60vh]">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative mb-8"
+        >
+          <div className="absolute inset-0 bg-primary/10 dark:bg-primary/20 rounded-full blur-2xl transform scale-150"></div>
+          <div className="relative bg-white dark:bg-darkCard p-8 rounded-full shadow-xl border border-gray-100 dark:border-darkBorder">
+            <ShoppingBag size={64} className="text-primary dark:text-accent" />
+          </div>
+        </motion.div>
+        
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-center max-w-md"
+        >
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4" data-key="yourCartEmpty">{t('yourCartEmpty')}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg" data-key="noItemsAdded">{t('noItemsAdded')}</p>
+          <Link to="/shop">
+            <Button className="w-full sm:w-auto px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1" data-key="startShopping">
+              {t('startShopping')}
+            </Button>
+          </Link>
+        </motion.div>
       </div>
     );
   }
@@ -46,9 +65,9 @@ export const Cart: React.FC = () => {
                     </span>
                   )}
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-primary dark:text-white">৳{currentPrice}</span>
+                    <span className="font-bold text-primary dark:text-white">{formatPrice(currentPrice)}</span>
                     {(!item.isWholesale && item.discountPercentage > 0) && (
-                      <span className="text-xs text-gray-400 line-through">৳{item.price}</span>
+                      <span className="text-xs text-gray-400 line-through">{formatPrice(item.price)}</span>
                     )}
                   </div>
                 </div>
@@ -84,16 +103,16 @@ export const Cart: React.FC = () => {
             <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4 border-b dark:border-darkBorder pb-4">
               <div className="flex justify-between">
                 <span data-key="subtotal">{t('subtotal')}</span>
-                <span>৳{cartTotal}</span>
+                <span>{formatPrice(cartTotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span data-key="deliveryCharge">{t('deliveryCharge')}</span>
-                <span>{cartTotal > 5000 ? t('free') : `৳${DELIVERY_CHARGE_INSIDE} - ৳${DELIVERY_CHARGE_OUTSIDE}`}</span>
+                <span>{cartTotal > 5000 ? t('free') : `${formatPrice(DELIVERY_CHARGE_INSIDE)} - ${formatPrice(DELIVERY_CHARGE_OUTSIDE)}`}</span>
               </div>
             </div>
             <div className="flex justify-between font-bold text-lg text-gray-800 dark:text-white mb-6">
               <span data-key="totalEstimated">{t('totalEstimated')}</span>
-              <span>৳{cartTotal} + Delivery</span>
+              <span>{formatPrice(cartTotal)} + Delivery</span>
             </div>
             <Link to="/checkout" className="block">
               <Button className="w-full" data-key="checkout">{t('checkout')}</Button>
@@ -107,7 +126,7 @@ export const Cart: React.FC = () => {
 
 // --- Checkout Page ---
 export const Checkout: React.FC = () => {
-  const { cart, user, cartTotal, placeOrder, t, language, validateCoupon, showToast } = useStore();
+  const { cart, user, cartTotal, placeOrder, t, language, validateCoupon, showToast, formatPrice } = useStore();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -145,7 +164,7 @@ export const Checkout: React.FC = () => {
     const discount = await validateCoupon(couponCode, cartTotal);
     if (discount > 0) {
       setDiscountAmount(discount);
-      showToast(`Coupon applied! You saved ৳${discount}`, 'success');
+      showToast(`Coupon applied! You saved ${formatPrice(discount)}`, 'success');
     } else {
       setDiscountAmount(0);
       showToast('Invalid or expired coupon', 'error');
@@ -240,14 +259,14 @@ export const Checkout: React.FC = () => {
                  return (
                  <div key={item.cartId} className="flex justify-between text-sm">
                    <span className="text-gray-600 dark:text-gray-400">{language === 'bn' ? (item.name_bn || item.name) : item.name} <span className="text-xs text-gray-400">x {item.quantity}</span></span>
-                   <span className="font-medium dark:text-white">৳{currentPrice * item.quantity}</span>
+                   <span className="font-medium dark:text-white">{formatPrice(currentPrice * item.quantity)}</span>
                  </div>
                  );
                })}
              </div>
              <div className="border-t dark:border-darkBorder pt-4 space-y-2 text-sm">
-               <div className="flex justify-between"><span data-key="subtotal">{t('subtotal')}</span><span>৳{cartTotal}</span></div>
-               <div className="flex justify-between"><span data-key="deliveryCharge">{t('deliveryCharge')}</span><span>৳{shippingCost}</span></div>
+               <div className="flex justify-between"><span data-key="subtotal">{t('subtotal')}</span><span>{formatPrice(cartTotal)}</span></div>
+               <div className="flex justify-between"><span data-key="deliveryCharge">{t('deliveryCharge')}</span><span>{formatPrice(shippingCost)}</span></div>
                
                {/* Coupon Section */}
                <div className="pt-2 pb-2">
@@ -265,7 +284,7 @@ export const Checkout: React.FC = () => {
                {discountAmount > 0 && (
                  <div className="flex justify-between text-green-600 dark:text-green-400">
                    <span>Discount</span>
-                   <span>-৳{discountAmount}</span>
+                   <span>-{formatPrice(discountAmount)}</span>
                  </div>
                )}
 
@@ -286,13 +305,13 @@ export const Checkout: React.FC = () => {
                {pointsDiscount > 0 && (
                  <div className="flex justify-between text-green-600 dark:text-green-400">
                    <span>Points Discount</span>
-                   <span>-৳{pointsDiscount}</span>
+                   <span>-{formatPrice(pointsDiscount)}</span>
                  </div>
                )}
 
                <div className="flex justify-between font-bold text-lg text-primary dark:text-white pt-2 border-t dark:border-darkBorder mt-2">
                  <span data-key="totalPayable">{t('totalPayable')}</span>
-                 <span>৳{total}</span>
+                 <span>{formatPrice(total)}</span>
                </div>
              </div>
              <Button type="submit" className="w-full mt-6 py-4 text-lg" disabled={loading}>
@@ -307,13 +326,36 @@ export const Checkout: React.FC = () => {
 
 // --- Wishlist Page ---
 export const Wishlist: React.FC = () => {
-  const { wishlist, t } = useStore();
+  const { wishlist, t, language } = useStore();
   if (wishlist.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <Heart size={48} className="mx-auto text-gray-300 mb-4" />
-        <h2 className="text-xl font-bold dark:text-white mb-2" data-key="yourCartEmpty">{t('yourCartEmpty')}</h2>
-        <Link to="/shop"><Button data-key="startShopping">{t('startShopping')}</Button></Link>
+      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[60vh]">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative mb-8"
+        >
+          <div className="absolute inset-0 bg-red-100 dark:bg-red-900/20 rounded-full blur-2xl transform scale-150"></div>
+          <div className="relative bg-white dark:bg-darkCard p-8 rounded-full shadow-xl border border-gray-100 dark:border-darkBorder">
+            <Heart size={64} className="text-red-500" />
+          </div>
+        </motion.div>
+        
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-center max-w-md"
+        >
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{language === 'bn' ? 'আপনার উইশলিস্ট খালি' : 'Your Wishlist is Empty'}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg">{language === 'bn' ? 'পছন্দের পণ্যগুলো এখানে সংরক্ষণ করুন' : 'Save your favorite items here'}</p>
+          <Link to="/shop">
+            <Button className="w-full sm:w-auto px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1" data-key="startShopping">
+              {t('startShopping')}
+            </Button>
+          </Link>
+        </motion.div>
       </div>
     );
   }
@@ -329,7 +371,7 @@ export const Wishlist: React.FC = () => {
 
 // --- Profile Page ---
 export const Profile: React.FC = () => {
-  const { user, orders, logout, cancelOrder, theme, setTheme, updateProfile, t, language, addReview } = useStore();
+  const { user, orders, logout, cancelOrder, theme, setTheme, updateProfile, t, language, addReview, formatPrice } = useStore();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [isEditing, setIsEditing] = useState(false);
@@ -494,13 +536,13 @@ export const Profile: React.FC = () => {
                    </div>
                    <div className="text-right">
                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${order.status === OrderStatus.DELIVERED ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{order.status}</span>
-                     <p className="font-bold text-lg mt-1 dark:text-white">৳{order.finalTotal}</p>
+                     <p className="font-bold text-lg mt-1 dark:text-white">{formatPrice(order.finalTotal)}</p>
                    </div>
                  </div>
                  {order.items.map((item, idx) => (
                    <div key={idx} className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
                      <div>
-                       {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - ৳{(item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100))) * item.quantity}
+                       {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - {formatPrice((item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100))) * item.quantity)}
                      </div>
                      {order.status === OrderStatus.DELIVERED && (
                        <Button variant="outline" size="sm" onClick={() => handleOpenReview(item.id)} className="text-xs py-1 h-auto">

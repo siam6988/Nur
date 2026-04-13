@@ -18,14 +18,14 @@ export const LoadingSpinner: React.FC = () => {
 };
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
-  const { addToCart, wishlist, toggleWishlist, language, user, t } = useStore();
+  const { addToCart, wishlist, toggleWishlist, language, user, t, formatPrice } = useStore();
   const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
   
   const isWishlisted = wishlist.some(item => item.id === product.id);
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
 
   // Wholesale pricing logic
-  let priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">৳{discountedPrice}</span>;
+  let priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">{formatPrice(discountedPrice)}</span>;
   
   if (product.isWholesale) {
     if (!user) {
@@ -34,7 +34,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       const prices = product.tierPricing.map(t => t.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
-      priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">৳{minPrice} - ৳{maxPrice}</span>;
+      priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">{formatPrice(minPrice)} - {formatPrice(maxPrice)}</span>;
     }
   }
 
@@ -78,7 +78,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           <div className="flex items-center space-x-2 mb-2">
             {priceDisplay}
             {product.discountPercentage > 0 && !product.isWholesale && (
-              <span className="text-gray-400 dark:text-gray-600 text-[10px] md:text-xs line-through">৳{product.price}</span>
+              <span className="text-gray-400 dark:text-gray-600 text-[10px] md:text-xs line-through">{formatPrice(product.price)}</span>
             )}
           </div>
 

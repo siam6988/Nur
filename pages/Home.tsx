@@ -2,8 +2,49 @@ import React, { useEffect, useState } from 'react';
 import { BANNERS, CATEGORIES } from '../constants';
 import { ProductCard, LoadingSpinner } from '../components/UIComponents';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset } from 'lucide-react';
+import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+
+const CountdownTimer = () => {
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 12,
+    minutes: 34,
+    seconds: 56
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        }
+        return { hours: 23, minutes: 59, seconds: 59 }; // Reset
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-1.5 mt-2">
+      <Clock size={16} className="text-danger mr-1" />
+      <div className="bg-danger/10 dark:bg-danger/20 text-danger px-2 py-1 rounded text-sm font-mono font-bold border border-danger/20">
+        {String(timeLeft.hours).padStart(2, '0')}
+      </div>
+      <span className="text-danger font-bold">:</span>
+      <div className="bg-danger/10 dark:bg-danger/20 text-danger px-2 py-1 rounded text-sm font-mono font-bold border border-danger/20">
+        {String(timeLeft.minutes).padStart(2, '0')}
+      </div>
+      <span className="text-danger font-bold">:</span>
+      <div className="bg-danger/10 dark:bg-danger/20 text-danger px-2 py-1 rounded text-sm font-mono font-bold border border-danger/20">
+        {String(timeLeft.seconds).padStart(2, '0')}
+      </div>
+    </div>
+  );
+};
 
 const Home: React.FC = () => {
   const { products, isLoading, t, recentlyViewed, categories, language } = useStore();
@@ -99,8 +140,11 @@ const Home: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-end mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white" data-key="flashSale">{t('flashSale')}</h2>
-            <p className="text-sm text-gray-500" data-key="flashSaleDesc">{t('flashSaleDesc')}</p>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white" data-key="flashSale">{t('flashSale')}</h2>
+              <CountdownTimer />
+            </div>
+            <p className="text-sm text-gray-500 mt-1" data-key="flashSaleDesc">{t('flashSaleDesc')}</p>
           </div>
           <Link to="/shop" className="text-primary dark:text-accent text-sm font-semibold flex items-center hover:underline" data-key="viewAllOffers">
             {t('viewAllOffers')} <ChevronRight size={16} />

@@ -5,6 +5,7 @@ import { ProductCard, RatingStars, Button, Card, LoadingSpinner } from '../compo
 import { CATEGORIES } from '../constants';
 import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package } from 'lucide-react';
 import { Product } from '../types';
+import { motion } from 'motion/react';
 
 // --- Shop Page ---
 export const Shop: React.FC = () => {
@@ -148,11 +149,25 @@ export const Shop: React.FC = () => {
                {filteredAndSortedProducts.map(p => <ProductCard key={p.id} product={p} />)}
              </div>
            ) : (
-             <Card className="text-center py-20">
-               <Package size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-               <p className="text-gray-500 dark:text-gray-400" data-key="noProductFound">{t('noProductFound')}</p>
-               <button onClick={clearFilters} className="mt-4 text-primary dark:text-accent font-bold" data-key="viewAllProducts">{t('viewAllProducts')}</button>
-             </Card>
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-darkCard rounded-2xl border border-gray-100 dark:border-darkBorder shadow-sm"
+             >
+               <div className="relative mb-6">
+                 <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 rounded-full blur-xl transform scale-150"></div>
+                 <div className="relative bg-gray-50 dark:bg-darkBg p-6 rounded-full">
+                   <Package size={48} className="text-gray-400 dark:text-gray-500" />
+                 </div>
+               </div>
+               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2" data-key="noProductFound">{t('noProductFound')}</h3>
+               <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                 We couldn't find what you're looking for. Try adjusting your filters.
+               </p>
+               <Button onClick={clearFilters} className="px-6 rounded-full shadow-md hover:shadow-lg transition-all" data-key="viewAllProducts">
+                 {t('viewAllProducts')}
+               </Button>
+             </motion.div>
            )}
         </div>
       </div>
@@ -297,7 +312,7 @@ export const ProductDetails: React.FC = () => {
 
              <div className="flex items-center gap-4 mb-6">
                 <RatingStars rating={product.rating} />
-                <span className="text-sm text-gray-500">({product.reviews.length} {t('reviews')})</span>
+                <span className="text-sm text-gray-500">({product.reviews?.length || 0} {t('reviews')})</span>
              </div>
              
              <div className="bg-gray-50 dark:bg-darkBg p-6 rounded-2xl border dark:border-darkBorder mb-8">
@@ -307,18 +322,18 @@ export const ProductDetails: React.FC = () => {
                  ) : (
                    <div>
                      <div className="flex items-end gap-2 mb-2">
-                       <span className="text-4xl font-bold text-primary dark:text-white">৳{currentPrice}</span>
+                       <span className="text-4xl font-bold text-primary dark:text-white">{formatPrice(currentPrice)}</span>
                        <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">/ unit</span>
                      </div>
                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                       Total: <span className="font-bold text-gray-900 dark:text-white">৳{totalPrice}</span> for {quantity} units
+                       Total: <span className="font-bold text-gray-900 dark:text-white">{formatPrice(totalPrice)}</span> for {quantity} units
                      </div>
                    </div>
                  )
                ) : (
                  <div>
-                   <span className="text-4xl font-bold text-primary dark:text-white">৳{discountedPrice}</span>
-                   {product.discountPercentage > 0 && <span className="text-gray-400 line-through ml-4">৳{product.price}</span>}
+                   <span className="text-4xl font-bold text-primary dark:text-white">{formatPrice(discountedPrice)}</span>
+                   {product.discountPercentage > 0 && <span className="text-gray-400 line-through ml-4">{formatPrice(product.price)}</span>}
                  </div>
                )}
              </div>
@@ -340,7 +355,7 @@ export const ProductDetails: React.FC = () => {
                            <td className="px-4 py-2 dark:text-gray-300">
                              {tier.min} {tier.max ? `- ${tier.max}` : '+'}
                            </td>
-                           <td className="px-4 py-2 font-bold text-primary dark:text-white">৳{tier.price}</td>
+                           <td className="px-4 py-2 font-bold text-primary dark:text-white">{formatPrice(tier.price)}</td>
                          </tr>
                        ))}
                      </tbody>
@@ -432,12 +447,12 @@ export const ProductDetails: React.FC = () => {
 
        {/* Reviews Section */}
        <div className="mt-8">
-         <h2 className="text-2xl font-bold mb-6 dark:text-white" data-key="reviews">{t('reviews')} ({product.reviews.length})</h2>
+         <h2 className="text-2xl font-bold mb-6 dark:text-white" data-key="reviews">{t('reviews')} ({product.reviews?.length || 0})</h2>
          
          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {/* Review List */}
            <div className="space-y-4">
-             {product.reviews.length > 0 ? (
+             {product.reviews && product.reviews.length > 0 ? (
                product.reviews.map(review => (
                  <Card key={review.id} className="!p-4">
                    <div className="flex justify-between items-start mb-2">
