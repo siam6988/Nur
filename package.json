@@ -10,6 +10,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/genai": "^1.50.1",
     "firebase": "^12.9.0",
     "lucide-react": "^0.563.0",
     "motion": "^12.38.0",

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Product, CartItem, Order, OrderStatus, Review, Category, Currency } from '../types';
-import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
+import { User, Product, CartItem, Order, OrderStatus, Review, Category, Currency, Banner } from '../types';
+import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE, BANNERS as DEFAULT_BANNERS } from '../constants';
 import { db, auth } from '../firebase-config';
 import { collection, onSnapshot, query, where, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -17,6 +17,7 @@ interface StoreContextType {
   user: User | null;
   products: Product[];
   categories: Category[];
+  banners: Banner[];
   cart: CartItem[];
   wishlist: Product[];
   orders: Order[];
@@ -55,6 +56,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
@@ -194,9 +196,21 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setCategories(categoriesData);
     });
 
+    // Banners Listener
+    const qBanners = query(collection(db, "banners"));
+    const unsubBanners = onSnapshot(qBanners, (snapshot) => {
+      if (!snapshot.empty) {
+        const bannersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Banner));
+        setBanners(bannersData);
+      } else {
+        setBanners(DEFAULT_BANNERS);
+      }
+    });
+
     return () => {
       unsubProducts();
       unsubCategories();
+      unsubBanners();
     };
   }, []);
 
@@ -526,7 +540,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      user, products, categories, cart, wishlist, orders, toast, isLoading, theme, language, currency, setTheme, setLanguage, setCurrency, formatPrice, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
+      user, products, categories, banners, cart, wishlist, orders, toast, isLoading, theme, language, currency, setTheme, setLanguage, setCurrency, formatPrice, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
     }}>
       {children}
     </StoreContext.Provider>

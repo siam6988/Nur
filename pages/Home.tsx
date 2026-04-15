@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BANNERS, CATEGORIES } from '../constants';
+import { CATEGORIES } from '../constants';
 import { ProductCard, LoadingSpinner } from '../components/UIComponents';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
@@ -47,16 +47,17 @@ const CountdownTimer = () => {
 };
 
 const Home: React.FC = () => {
-  const { products, isLoading, t, recentlyViewed, categories, language } = useStore();
+  const { products, isLoading, t, recentlyViewed, categories, language, banners } = useStore();
   const [currentBanner, setCurrentBanner] = useState(0);
 
   // Auto slide banner
   useEffect(() => {
+    if (banners.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % BANNERS.length);
+      setCurrentBanner((prev) => (prev + 1) % banners.length);
     }, 4000); // 4 seconds
     return () => clearInterval(timer);
-  }, []);
+  }, [banners]);
 
   if (isLoading) {
     return (
@@ -74,7 +75,7 @@ const Home: React.FC = () => {
     <div className="space-y-12 pb-12">
       {/* Banner Slider */}
       <div className="relative w-full h-[200px] md:h-[400px] overflow-hidden bg-gray-200 dark:bg-darkCard">
-        {BANNERS.map((banner, index) => (
+        {banners.map((banner, index) => (
           <div 
             key={banner.id}
             className={`absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
@@ -92,7 +93,7 @@ const Home: React.FC = () => {
         ))}
         {/* Indicators */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {BANNERS.map((_, idx) => (
+          {banners.map((_, idx) => (
             <button 
               key={idx} 
               onClick={() => setCurrentBanner(idx)}

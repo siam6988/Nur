@@ -7,7 +7,6 @@ import { Shop, ProductDetails } from './pages/ProductPages';
 import { Wholesale } from './pages/Wholesale';
 import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
 import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy } from './pages/StaticPages';
-import Admin from './pages/Admin';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -43,9 +42,6 @@ const App: React.FC = () => {
             <Route path="/terms" element={<Terms />} />
             <Route path="/shipping" element={<ShippingPolicy />} />
             <Route path="/affiliate" element={<Affiliate />} />
-            
-            {/* Admin Route */}
-            <Route path="/admin" element={<Admin />} />
           </Routes>
         </Layout>
       </HashRouter>

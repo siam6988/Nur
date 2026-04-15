@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe, Camera, Loader2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { CATEGORIES } from '../constants';
 import { Toast } from './UIComponents';
 import { Currency } from '../types';
+import { analyzeImageForSearch } from '../services/gemini';
 
 export const Navbar: React.FC = () => {
-  const { cart, user, logout, theme, setTheme, language, setLanguage, currency, setCurrency, t, categories } = useStore();
+  const { cart, user, logout, theme, setTheme, language, setLanguage, currency, setCurrency, t, categories, showToast } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -19,6 +22,28 @@ export const Navbar: React.FC = () => {
     if (searchQuery.trim()) {
       navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
+    }
+  };
+
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingImage(true);
+    try {
+      const keywords = await analyzeImageForSearch(file);
+      if (keywords) {
+        setSearchQuery(keywords);
+        navigate(`/shop?q=${encodeURIComponent(keywords.trim())}`);
+        showToast("Image analyzed successfully!", "success");
+      }
+    } catch (error) {
+      showToast("Failed to analyze image for search.", "error");
+    } finally {
+      setIsAnalyzingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -50,8 +75,21 @@ export const Navbar: React.FC = () => {
               placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border-2 border-gray-200 dark:border-darkBorder dark:bg-darkBg dark:text-white rounded-lg py-2 px-4 focus:outline-none focus:border-primary transition-colors"
+              className="w-full border-2 border-gray-200 dark:border-darkBorder dark:bg-darkBg dark:text-white rounded-lg py-2 px-4 pr-24 focus:outline-none focus:border-primary transition-colors"
             />
+            <div className="absolute right-16 top-0 h-full flex items-center justify-center px-2">
+              <label className="cursor-pointer text-gray-400 hover:text-primary transition-colors" title="Search by Image">
+                {isAnalyzingImage ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleImageSearch}
+                  ref={fileInputRef}
+                  disabled={isAnalyzingImage}
+                />
+              </label>
+            </div>
             <button type="submit" className="absolute right-0 top-0 h-full bg-primary text-white px-6 rounded-r-lg hover:bg-blue-800 transition">
               <Search size={20} />
             </button>
@@ -116,9 +154,6 @@ export const Navbar: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder rounded-lg shadow-xl hidden group-hover:block p-2">
                   <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="profile">{t('profile')}</Link>
                   <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="orders">{t('orders')}</Link>
-                  {user.role === 'admin' && (
-                    <Link to="/admin" className="block px-4 py-2 text-sm text-primary font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">Admin Panel</Link>
-                  )}
                   <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 rounded" data-key="logout">{t('logout')}</button>
                 </div>
               </div>
@@ -142,8 +177,20 @@ export const Navbar: React.FC = () => {
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full border border-gray-300 dark:border-darkBorder dark:bg-darkBg dark:text-white rounded-md py-2 px-4 text-sm"
+            className="w-full border border-gray-300 dark:border-darkBorder dark:bg-darkBg dark:text-white rounded-md py-2 px-4 pr-20 text-sm"
           />
+          <div className="absolute right-10 top-0 h-full flex items-center justify-center px-1">
+            <label className="cursor-pointer text-gray-400 hover:text-primary transition-colors" title="Search by Image">
+              {isAnalyzingImage ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleImageSearch}
+                disabled={isAnalyzingImage}
+              />
+            </label>
+          </div>
           <button type="submit" className="absolute right-3 top-2.5 text-gray-400">
             <Search size={18} />
           </button>
@@ -179,11 +226,6 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
               {t('wholesale')}
             </Link>
-            {user?.role === 'admin' && (
-              <Link to="/admin" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
-                Admin Panel
-              </Link>
-            )}
             <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
               <Link key={cat.id} to={`/shop?category=${cat.id}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>

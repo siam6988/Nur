@@ -37,7 +37,16 @@ export const Shop: React.FC = () => {
       const matchesCategory = filterCat === 'all' || p.categoryId === filterCat || p.category === filterCat;
       const nameEn = p.name_en || p.name || '';
       const nameBn = p.name_bn || '';
-      const matchesSearch = nameEn.toLowerCase().includes(searchQuery.toLowerCase()) || nameBn.includes(searchQuery);
+      const descEn = p.description_en || p.description || '';
+      const descBn = p.description_bn || '';
+      
+      const searchTerms = searchQuery.toLowerCase().split(' ').filter(term => term.length > 0);
+      const matchesSearch = searchTerms.length === 0 || searchTerms.some(term => 
+        nameEn.toLowerCase().includes(term) || 
+        nameBn.includes(term) ||
+        descEn.toLowerCase().includes(term) ||
+        descBn.includes(term)
+      );
       const discountedPrice = p.price - (p.price * p.discountPercentage / 100);
       const matchesMinPrice = minPrice === '' || discountedPrice >= Number(minPrice);
       const matchesMaxPrice = maxPrice === '' || discountedPrice <= Number(maxPrice);
