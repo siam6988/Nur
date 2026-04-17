@@ -52,7 +52,7 @@ const Home: React.FC = () => {
 
   // Auto slide banner
   useEffect(() => {
-    if (banners.length === 0) return;
+    if (!banners || banners.length === 0) return;
     const timer = setInterval(() => {
       setCurrentBanner((prev) => (prev + 1) % banners.length);
     }, 4000); // 4 seconds
@@ -73,38 +73,49 @@ const Home: React.FC = () => {
 
   return (
     <div className="space-y-12 pb-12">
-      {/* Banner Slider */}
-      <div className="relative w-full h-[200px] md:h-[400px] overflow-hidden bg-gray-200 dark:bg-darkCard">
-        {banners.map((banner, index) => (
-          <div 
-            key={banner.id}
-            className={`absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent flex items-center">
-              <div className="container mx-auto px-4 md:px-8">
-                <h2 className="text-2xl md:text-5xl font-bold text-white mb-4 drop-shadow-md">{banner.title}</h2>
-                <Link to={banner.link} className="inline-block bg-accent text-white px-6 py-2 md:px-8 md:py-3 rounded-full font-bold hover:bg-yellow-600 transition shadow-lg" data-key="buyNow">
-                  {t('buyNow')}
-                </Link>
-              </div>
+      {/* Banner Slider Reserved Space */}
+      <div className="container mx-auto px-4 reveal">
+        <div className="relative w-full h-[200px] md:h-[400px] overflow-hidden rounded-2xl bg-gray-100 dark:bg-darkCard/50 border-2 border-dashed border-gray-300 dark:border-darkBorder flex items-center justify-center">
+          {!banners || banners.length === 0 ? (
+            <div className="text-center p-6 text-gray-400">
+              <p className="text-lg md:text-xl font-medium">Banner Section</p>
+              <p className="text-sm">Add dynamic banners from your Admin Panel.</p>
             </div>
-          </div>
-        ))}
-        {/* Indicators */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {banners.map((_, idx) => (
-            <button 
-              key={idx} 
-              onClick={() => setCurrentBanner(idx)}
-              className={`w-2 h-2 rounded-full ${idx === currentBanner ? 'bg-accent w-6' : 'bg-white/50'} transition-all`}
-            />
-          ))}
+          ) : (
+            <>
+              {banners.map((banner, index) => (
+                <div 
+                  key={banner.id}
+                  className={`absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
+                >
+                  <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent flex items-center">
+                    <div className="container mx-auto px-4 md:px-8">
+                      <h2 className="text-2xl md:text-5xl font-bold text-white mb-4 drop-shadow-md">{banner.title}</h2>
+                      <Link to={banner.link} className="inline-block bg-accent text-white px-6 py-2 md:px-8 md:py-3 rounded-full font-bold hover:bg-yellow-600 transition shadow-lg" data-key="buyNow">
+                        {t('buyNow')}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {/* Indicators */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {banners.map((_, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setCurrentBanner(idx)}
+                    className={`w-2 h-2 rounded-full ${idx === currentBanner ? 'bg-accent w-6' : 'bg-white/50'} transition-all`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Services Features */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 reveal">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder transition-colors">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-blue-50 dark:bg-white/5 rounded-full text-primary dark:text-blue-400"><Truck size={24} /></div>
@@ -138,7 +149,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Flash Sale */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 reveal">
         <div className="flex justify-between items-end mb-6">
           <div>
             <div className="flex items-center gap-4">
@@ -159,7 +170,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Categories Grid */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 reveal">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="popularCategories">{t('popularCategories')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categories.filter(c => c.id !== 'all').map(cat => (
@@ -182,7 +193,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Just For You / Featured */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 reveal">
         <div className="flex justify-between items-center mb-6">
            <h2 className="text-2xl font-bold text-gray-800 dark:text-white" data-key="justForYou">{t('justForYou')}</h2>
            <Link to="/shop" className="bg-white dark:bg-darkCard dark:text-white border border-gray-300 dark:border-darkBorder px-4 py-1 rounded-full text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5" data-key="seeMore">{t('seeMore')}</Link>
@@ -196,7 +207,7 @@ const Home: React.FC = () => {
 
       {/* Recently Viewed */}
       {recentlyViewed.length > 0 && (
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 reveal">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="recentlyViewed">{t('recentlyViewed')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {recentlyViewed.slice(0, 4).map(product => (

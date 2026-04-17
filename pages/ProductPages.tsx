@@ -161,20 +161,20 @@ export const Shop: React.FC = () => {
              <motion.div 
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
-               className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-darkCard rounded-2xl border border-gray-100 dark:border-darkBorder shadow-sm"
+               className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-darkCard rounded-3xl border border-gray-100 dark:border-darkBorder shadow-sm"
              >
-               <div className="relative mb-6">
-                 <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 rounded-full blur-xl transform scale-150"></div>
-                 <div className="relative bg-gray-50 dark:bg-darkBg p-6 rounded-full">
-                   <Package size={48} className="text-gray-400 dark:text-gray-500" />
+               <div className="relative mb-8">
+                 <div className="absolute inset-0 bg-primary/10 dark:bg-primary/5 rounded-full blur-2xl transform scale-150"></div>
+                 <div className="relative bg-primary/5 dark:bg-primary/10 p-8 rounded-full">
+                   <Search size={56} className="text-primary/60 dark:text-primary/40" />
                  </div>
                </div>
-               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2" data-key="noProductFound">{t('noProductFound')}</h3>
-               <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-                 We couldn't find what you're looking for. Try adjusting your filters.
+               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3" data-key="noProductFound">{t('noProductFound') || 'No Products Found'}</h3>
+               <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md px-4 leading-relaxed">
+                 We couldn't find any products matching your current filters or search query. Try adjusting them or browse all our products.
                </p>
-               <Button onClick={clearFilters} className="px-6 rounded-full shadow-md hover:shadow-lg transition-all" data-key="viewAllProducts">
-                 {t('viewAllProducts')}
+               <Button onClick={clearFilters} className="px-8 py-3 rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all font-bold text-sm" data-key="viewAllProducts">
+                 {t('viewAllProducts') || 'View All Products'}
                </Button>
              </motion.div>
            )}
@@ -440,11 +440,11 @@ export const ProductDetails: React.FC = () => {
                </Button>
                <Button 
                  onClick={handleBuyNow} 
-                 className="flex-1 py-4 text-xl bg-accent hover:bg-yellow-600 text-white shadow-lg shadow-accent/20"
-                 data-key="shopNow"
+                 className="flex-1 py-4 text-xl bg-accent hover:bg-yellow-600 text-white font-bold shadow-lg shadow-accent/20"
+                 data-key="buyNow"
                  disabled={product.isWholesale && !user}
                >
-                 {t('shopNow')}
+                 {t('buyNow')}
                </Button>
              </div>
              {product.isWholesale && !user && (

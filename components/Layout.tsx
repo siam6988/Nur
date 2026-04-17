@@ -90,8 +90,8 @@ export const Navbar: React.FC = () => {
                 />
               </label>
             </div>
-            <button type="submit" className="absolute right-0 top-0 h-full bg-primary text-white px-6 rounded-r-lg hover:bg-blue-800 transition">
-              <Search size={20} />
+            <button type="submit" className="absolute right-0 top-0 h-full bg-primary text-white px-6 rounded-r-lg hover:bg-[#06152a] transition">
+              <Search size={20} className="icon-interactive" />
             </button>
           </form>
 
@@ -99,21 +99,18 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center space-x-2 md:space-x-6">
             
             {/* Currency Toggle */}
-            <div className="relative group">
-              <button className="flex items-center gap-1 px-2 py-1 rounded-full border border-gray-200 dark:border-darkBorder bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-                {currency}
-              </button>
-              <div className="absolute right-0 mt-2 w-24 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder rounded-lg shadow-xl hidden group-hover:block p-1">
-                {Object.values(Currency).map(c => (
-                  <button 
-                    key={c}
-                    onClick={() => setCurrency(c)}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded ${currency === c ? 'bg-primary/10 text-primary dark:text-white font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg'}`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+            <div className="relative">
+              <select 
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as Currency)}
+                className="appearance-none flex items-center gap-1 px-3 py-1 rounded-full border border-gray-200 dark:border-darkBorder bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="BDT">BDT</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR">INR</option>
+              </select>
             </div>
 
             {/* Language Toggle */}
@@ -136,9 +133,9 @@ export const Navbar: React.FC = () => {
             </button>
 
             <Link to="/cart" className="relative text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white transition">
-              <ShoppingCart size={24} />
+              <ShoppingCart size={24} id="cart-icon-header" className="icon-interactive" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
                   {cartItemCount}
                 </span>
               )}
@@ -146,8 +143,8 @@ export const Navbar: React.FC = () => {
 
             {user ? (
               <div className="relative group">
-                <Link to="/profile" className="flex items-center space-x-1 text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-white">
-                  <User size={24} />
+                <Link to="/profile" className="flex items-center space-x-1 text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-white group-hover:text-accent">
+                  <User size={24} className="icon-interactive" />
                   <span className="hidden md:inline font-medium text-sm truncate max-w-[100px]">{user.name}</span>
                 </Link>
                 {/* Dropdown */}
@@ -192,7 +189,7 @@ export const Navbar: React.FC = () => {
             </label>
           </div>
           <button type="submit" className="absolute right-3 top-2.5 text-gray-400">
-            <Search size={18} />
+            <Search size={18} className="icon-interactive" />
           </button>
         </form>
       </div>
@@ -250,9 +247,9 @@ export const Footer: React.FC = () => {
             {t('footerDesc')}
           </p>
           <div className="flex space-x-4">
-            <Facebook className="hover:text-primary cursor-pointer transition" />
-            <Instagram className="hover:text-primary cursor-pointer transition" />
-            <Twitter className="hover:text-primary cursor-pointer transition" />
+            <Facebook className="icon-interactive hover:text-accent cursor-pointer transition" />
+            <Instagram className="icon-interactive hover:text-accent cursor-pointer transition" />
+            <Twitter className="icon-interactive hover:text-accent cursor-pointer transition" />
           </div>
         </div>
 
