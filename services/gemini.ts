@@ -29,7 +29,7 @@ export const analyzeImageForSearch = async (file: File): Promise<string> => {
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-pro-preview",
       contents: { parts: [imagePart, textPart] },
     });
 

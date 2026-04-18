@@ -4,9 +4,11 @@ import { ChevronRight, Home as HomeIcon } from 'lucide-react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Layout } from './components/Layout';
 import { ThemeLoader } from './components/UIComponents';
+import { ChatBot } from './components/ChatBot';
 import Home from './pages/Home';
 import { Shop, ProductDetails } from './pages/ProductPages';
 import { Wholesale } from './pages/Wholesale';
+import { VideoStudio } from './pages/VideoStudio';
 import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
 import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy } from './pages/StaticPages';
 
@@ -95,21 +97,25 @@ const Breadcrumbs = () => {
   );
 };
 
-const App: React.FC = () => {
+// Wrap main app to consume context and tie animation to real loading state
+const AppContent: React.FC = () => {
+  const { isLoading } = useStore();
   const [initialLoading, setInitialLoading] = useState(true);
   const [finishLoading, setFinishLoading] = useState(false);
 
   useEffect(() => {
-    // Simulate initial asset loading for premium feel
-    const timer = setTimeout(() => {
-      setFinishLoading(true); // Trigger finish animation
-      setTimeout(() => setInitialLoading(false), 500); // Wait for fade out
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!isLoading) {
+      // Once products and categories finish fetching, trigger fade out
+      setFinishLoading(true);
+      const timer = setTimeout(() => {
+        setInitialLoading(false);
+      }, 500); // Wait for fade out animation
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   return (
-    <StoreProvider>
+    <>
       {initialLoading && <ThemeLoader finish={finishLoading} />}
       <HashRouter>
         <ScrollToTop />
@@ -120,6 +126,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/wholesale" element={<Wholesale />} />
+            <Route path="/studio" element={<VideoStudio />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -137,7 +144,16 @@ const App: React.FC = () => {
             <Route path="/affiliate" element={<Affiliate />} />
           </Routes>
         </Layout>
+        <ChatBot />
       </HashRouter>
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <StoreProvider>
+      <AppContent />
     </StoreProvider>
   );
 };

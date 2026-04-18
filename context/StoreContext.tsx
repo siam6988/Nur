@@ -142,26 +142,41 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (firebaseUser) {
         const userRef = doc(db!, "users", firebaseUser.uid);
         
-        // Check if user exists first
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          const newUser: User = {
+        try {
+          // Check if user exists first
+          const userSnap = await getDoc(userRef);
+          if (!userSnap.exists()) {
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || 'User',
+              email: firebaseUser.email || '',
+              points: 0,
+              avatar: firebaseUser.photoURL || 'https://picsum.photos/seed/user_avatar/100/100',
+              role: 'user'
+            };
+            await setDoc(userRef, newUser);
+          }
+
+          // Listen to user changes
+          unsubUser = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              setUser({ id: docSnap.id, ...docSnap.data() } as User);
+            }
+          }, (error) => {
+            console.error("User listener error", error);
+          });
+        } catch (error) {
+          console.error("Error fetching user data", error);
+          // Set user even if we can't fetch from DB right now
+          setUser({
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'User',
             email: firebaseUser.email || '',
             points: 0,
             avatar: firebaseUser.photoURL || 'https://picsum.photos/seed/user_avatar/100/100',
             role: 'user'
-          };
-          await setDoc(userRef, newUser);
+          });
         }
-
-        // Listen to user changes
-        unsubUser = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setUser({ id: docSnap.id, ...docSnap.data() } as User);
-          }
-        });
       } else {
         setUser(null);
         if (unsubUser) unsubUser();
@@ -187,6 +202,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(productsData);
       setIsLoading(false);
+    }, (error) => {
+      console.error("Products Listener Error", error);
+      setIsLoading(false);
     });
 
     // Categories Listener
@@ -194,6 +212,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const unsubCategories = onSnapshot(qCategories, (snapshot) => {
       const categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
       setCategories(categoriesData);
+    }, (error) => {
+      console.error("Categories Listener Error", error);
     });
 
     // Banners Listener
@@ -205,6 +225,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       } else {
         setBanners(DEFAULT_BANNERS);
       }
+    }, (error) => {
+      console.error("Banners Listener Error", error);
+      setBanners(DEFAULT_BANNERS);
     });
 
     return () => {
@@ -227,6 +250,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Sort client-side to avoid index requirement
       ordersData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setOrders(ordersData);
+    }, (error) => {
+      console.error("Orders Listener Error", error);
     });
 
     return () => unsubOrders();

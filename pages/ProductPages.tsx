@@ -154,9 +154,27 @@ export const Shop: React.FC = () => {
            </div>
 
            {filteredAndSortedProducts.length > 0 ? (
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-               {filteredAndSortedProducts.map(p => <ProductCard key={p.id} product={p} />)}
-             </div>
+             <motion.div 
+               initial="hidden"
+               animate="visible"
+               variants={{
+                 hidden: {},
+                 visible: { transition: { staggerChildren: 0.05 } }
+               }}
+               className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+             >
+               {filteredAndSortedProducts.map(p => (
+                 <motion.div 
+                   key={p.id}
+                   variants={{
+                     hidden: { opacity: 0, y: 15, scale: 0.96 },
+                     visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 100 } }
+                   }}
+                 >
+                   <ProductCard product={p} />
+                 </motion.div>
+               ))}
+             </motion.div>
            ) : (
              <motion.div 
                initial={{ opacity: 0, y: 20 }}
@@ -281,10 +299,20 @@ export const ProductDetails: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-       <Card className="!p-6 md:!p-10">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="container mx-auto px-4 py-8"
+    >
+       <Card className="!p-6 md:!p-10 shadow-lg border-primary/5">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-           <div className="space-y-4">
+           <motion.div 
+             initial={{ opacity: 0, x: -30 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ duration: 0.6, delay: 0.2 }}
+             className="space-y-4"
+           >
              <div 
                className="aspect-square bg-gray-100 dark:bg-darkBg rounded-2xl overflow-hidden border dark:border-darkBorder relative cursor-crosshair"
                onMouseMove={handleMouseMove}
@@ -308,9 +336,14 @@ export const ProductDetails: React.FC = () => {
                  </button>
                ))}
              </div>
-           </div>
+           </motion.div>
 
-           <div>
+           <motion.div 
+             initial={{ opacity: 0, x: 30 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ duration: 0.6, delay: 0.3 }}
+             className="flex flex-col h-full"
+           >
              <h1 className="text-2xl md:text-4xl font-bold dark:text-white mb-2">{displayName}</h1>
              
              {product.isWholesale && (
@@ -450,7 +483,7 @@ export const ProductDetails: React.FC = () => {
              {product.isWholesale && !user && (
                <p className="text-sm text-accent mt-2 text-center">{t('loginToSeePrice')}</p>
              )}
-           </div>
+           </motion.div>
          </div>
        </Card>
 
@@ -532,6 +565,6 @@ export const ProductDetails: React.FC = () => {
            )}
          </div>
        </div>
-    </div>
+    </motion.div>
   );
 };

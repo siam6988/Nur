@@ -4,24 +4,15 @@ import { Star, ShoppingCart, Heart, CheckCircle, XCircle, Loader2 } from 'lucide
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 
-// Theme Based Loading Cube
+// Elegant Premium Loader
 export const ThemeLoader: React.FC<{ finish?: boolean }> = ({ finish }) => {
-  const LogoFace = () => (
-    <span className="text-white font-bold tracking-tighter text-[16px] drop-shadow-md">
-      NUR<span className="text-accent">.</span>
-    </span>
-  );
-
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center pointer-events-none ${finish ? 'bg-overlay-finish' : 'bg-[#0b1f3a]'}`}>
-      <div className={`cube-loader-container ${finish ? 'finishing-cube' : ''}`}>
-        <div className="cube animate-cube-rotate">
-           <div className="cube-face cube-face-front"><LogoFace /></div>
-           <div className="cube-face cube-face-back"><LogoFace /></div>
-           <div className="cube-face cube-face-left"><LogoFace /></div>
-           <div className="cube-face cube-face-right"><LogoFace /></div>
-           <div className="cube-face cube-face-top"><LogoFace /></div>
-           <div className="cube-face cube-face-bottom"><LogoFace /></div>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center pointer-events-none transition-colors duration-500 ${finish ? 'bg-overlay-finish' : 'bg-primary'}`}>
+      <div className={`premium-loader-container ${finish ? 'finishing' : ''}`}>
+        <div className="premium-logo-reveal">
+          <span className="logo-text">
+            NUR<span className="dot">.</span>
+          </span>
         </div>
       </div>
     </div>
@@ -118,7 +109,12 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             e.preventDefault();
             toggleWishlist(product);
           }}
-          className={`absolute top-2 right-2 p-1.5 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 hover:scale-110 ${isWishlisted ? 'bg-accent/20 text-accent' : 'bg-white dark:bg-darkCard text-gray-400 dark:text-gray-500 hover:text-accent'}`}
+          className={`absolute top-2 right-2 p-1.5 rounded-full shadow-md transition hover:scale-110 z-10 ${
+            isWishlisted 
+              ? 'bg-accent text-primary ring-2 ring-white dark:ring-darkBg' 
+              : 'bg-white/90 dark:bg-darkCard/90 text-gray-500 hover:text-accent'
+          }`}
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
         </button>
@@ -138,10 +134,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Star size={14} className="text-accent fill-current" />
-              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 ml-1">
-                {product.rating > 0 ? product.rating.toFixed(1) : 'New'}
+            <div className="flex items-center space-x-1">
+              <RatingStars rating={product.rating > 0 ? product.rating : 5} size={12} />
+              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
+                ({product.reviews?.length || 0})
               </span>
             </div>
             

@@ -4,6 +4,7 @@ import { ProductCard, LoadingSpinner } from '../components/UIComponents';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { motion } from 'motion/react';
 
 const CountdownTimer = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -68,8 +69,8 @@ const Home: React.FC = () => {
   }
 
   const retailProducts = products.filter(p => !p.isWholesale);
-  const featuredProducts = retailProducts.slice(0, 4);
-  const flashSaleProducts = retailProducts.filter(p => p.discountPercentage > 10).slice(0, 4);
+  const featuredProducts = retailProducts.slice(0, 8);
+  const flashSaleProducts = retailProducts.filter(p => p.discountPercentage > 10).slice(0, 8);
 
   return (
     <div className="space-y-12 pb-12">
@@ -162,29 +163,51 @@ const Home: React.FC = () => {
             {t('viewAllOffers')} <ChevronRight size={16} />
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {flashSaleProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={{
+            visible: { transition: { staggerChildren: 0.1 } },
+            hidden: {}
+          }}
+          className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
+        >
+          {flashSaleProducts.map((product, index) => (
+            <motion.div 
+              key={product.id} 
+              variants={{
+                hidden: { opacity: 0, x: (index - 2) * -100, y: 20, rotate: (index - 2) * 5, scale: 0.8 },
+                visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 120, damping: 14 } }
+              }}
+              className="min-w-[240px] md:min-w-[280px] snap-start flex-none"
+            >
+              <ProductCard product={product} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
-      {/* Categories Grid */}
+      {/* Categories Grid (Masonry/Bento) */}
       <div className="container mx-auto px-4 reveal">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="popularCategories">{t('popularCategories')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.filter(c => c.id !== 'all').map(cat => (
-             <Link key={cat.id} to={`/shop?category=${cat.id}`} className="group relative h-40 md:h-64 rounded-xl overflow-hidden bg-gray-200 dark:bg-darkCard shadow-md hover:shadow-xl transition-all duration-300">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[150px] md:auto-rows-[200px]">
+          {categories.filter(c => c.id !== 'all').map((cat, idx) => (
+             <Link 
+               key={cat.id} 
+               to={`/shop?category=${cat.id}`} 
+               className={`group relative rounded-2xl overflow-hidden bg-gray-200 dark:bg-darkCard shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1 ${idx === 0 ? 'col-span-2 row-span-2 md:col-span-2 md:row-span-2' : ''} ${idx === 3 ? 'md:col-span-2' : ''} ${idx === 4 ? 'row-span-2' : ''}`}
+             >
                <img 
-                 src={cat.image || `https://picsum.photos/seed/${cat.id}/400/600`} 
+                 src={cat.image || `https://picsum.photos/seed/${cat.id}/800/800`} 
                  alt={language === 'bn' ? cat.name_bn : cat.name_en} 
-                 className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-in-out" 
+                 className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out" 
                  loading="lazy"
                />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6">
-                 <span className="text-white text-lg md:text-2xl font-bold tracking-wide drop-shadow-md transform group-hover:-translate-y-1 transition-transform duration-300">{language === 'bn' ? cat.name_bn : cat.name_en}</span>
-                 <span className="text-gray-300 text-xs md:text-sm opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-75 font-medium">
-                   {t('shopNow')} <ChevronRight size={14} className="inline ml-1" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-5 md:p-6 flex flex-col justify-end">
+                 <span className="text-white text-xl md:text-3xl font-bold tracking-tight drop-shadow-md transform group-hover:-translate-y-2 transition-transform duration-300">{language === 'bn' ? cat.name_bn : cat.name_en}</span>
+                 <span className="text-accent text-sm md:text-base opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 font-semibold flex items-center mt-1">
+                   {t('shopNow')} <ChevronRight size={16} className="ml-1" />
                  </span>
                </div>
              </Link>
@@ -192,17 +215,35 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Just For You / Featured */}
+      {/* Just For You / Featured (Carousel) */}
       <div className="container mx-auto px-4 reveal">
         <div className="flex justify-between items-center mb-6">
            <h2 className="text-2xl font-bold text-gray-800 dark:text-white" data-key="justForYou">{t('justForYou')}</h2>
-           <Link to="/shop" className="bg-white dark:bg-darkCard dark:text-white border border-gray-300 dark:border-darkBorder px-4 py-1 rounded-full text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5" data-key="seeMore">{t('seeMore')}</Link>
+           <Link to="/shop" className="bg-white dark:bg-darkCard dark:text-white border border-gray-200 dark:border-darkBorder px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/5 shadow-sm hover:shadow" data-key="seeMore">{t('seeMore')}</Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {featuredProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={{
+            visible: { transition: { staggerChildren: 0.1 } },
+            hidden: {}
+          }}
+          className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
+        >
+          {featuredProducts.map((product, index) => (
+            <motion.div 
+              key={product.id} 
+              variants={{
+                hidden: { opacity: 0, x: (index - 2) * -80, y: 30, rotate: (index - 2) * 6, scale: 0.9 },
+                visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 150, damping: 15 } }
+              }}
+              className="min-w-[200px] md:min-w-[260px] snap-start flex-none"
+            >
+              <ProductCard product={product} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* Recently Viewed */}

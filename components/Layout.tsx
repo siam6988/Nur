@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe, Camera, Loader2 } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe, Camera, Loader2, PlaySquare } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { CATEGORIES } from '../constants';
 import { Toast } from './UIComponents';
@@ -204,6 +204,9 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="text-sm font-bold text-accent hover:text-yellow-600 whitespace-nowrap flex items-center gap-1">
               <ShoppingCart size={14} /> {t('wholesale')}
             </Link>
+            <Link to="/studio" className="text-sm font-bold text-blue-500 hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
+              <PlaySquare size={14} /> Studio AI
+            </Link>
             <div className="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
             {categories.map(cat => (
               <Link key={cat.id} to={`/shop?category=${cat.id}`} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white whitespace-nowrap">
@@ -222,6 +225,9 @@ export const Navbar: React.FC = () => {
             </Link>
             <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
               {t('wholesale')}
+            </Link>
+            <Link to="/studio" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
+              Studio AI
             </Link>
             <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
