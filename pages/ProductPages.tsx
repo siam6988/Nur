@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { ProductCard, RatingStars, Button, Card, LoadingSpinner } from '../components/UIComponents';
+import { ProductCard, RatingStars, Button, Card, LoadingSpinner, ProductCardSkeleton } from '../components/UIComponents';
 import { CATEGORIES } from '../constants';
 import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package } from 'lucide-react';
-import { Product } from '../types';
+import { Product, OrderStatus } from '../types';
 import { motion } from 'motion/react';
 
 // --- Shop Page ---
@@ -72,8 +72,6 @@ export const Shop: React.FC = () => {
     setShowWholesale(false);
     navigate('/shop');
   };
-
-  if (isLoading) return <div className="container mx-auto px-4 py-20 flex justify-center"><LoadingSpinner /></div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -153,7 +151,13 @@ export const Shop: React.FC = () => {
               </select>
            </div>
 
-           {filteredAndSortedProducts.length > 0 ? (
+           {isLoading ? (
+             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+             </div>
+           ) : filteredAndSortedProducts.length > 0 ? (
              <motion.div 
                initial="hidden"
                animate="visible"
@@ -206,7 +210,7 @@ export const Shop: React.FC = () => {
 export const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, addToCart, toggleWishlist, wishlist, addReview, user, orders, isLoading, t, language, addToRecentlyViewed, calculateAppliedPrice } = useStore();
+  const { products, addToCart, toggleWishlist, wishlist, addReview, user, orders, isLoading, t, language, addToRecentlyViewed, formatPrice, calculateAppliedPrice } = useStore();
   const product = products.find(p => p.id === id);
   const [selectedSize, setSelectedSize] = useState<string>(product?.sizes[0] || '');
   const [mainImage, setMainImage] = useState(product?.images[0] || '');
@@ -215,6 +219,7 @@ export const ProductDetails: React.FC = () => {
   const [zoomStyle, setZoomStyle] = useState({ opacity: 0, backgroundPosition: '0% 0%' });
   const [quantity, setQuantity] = useState<number>(1);
   const [quantityError, setQuantityError] = useState<string>('');
+  const [buyNowMessage, setBuyNowMessage] = useState<string>('');
 
   useEffect(() => {
     if (product) {
@@ -230,11 +235,36 @@ export const ProductDetails: React.FC = () => {
     }
   }, [product]);
 
-  if (isLoading) return <div className="p-20 text-center"><LoadingSpinner /></div>;
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 animate-pulse">
+        <div className="flex flex-col md:flex-row gap-8 lg:gap-12 bg-white dark:bg-darkCard p-6 rounded-2xl border border-gray-100 dark:border-darkBorder">
+          <div className="w-full md:w-1/2 space-y-4">
+            <div className="w-full aspect-[4/5] bg-gray-200 dark:bg-darkBg rounded-xl"></div>
+            <div className="flex gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-20 h-20 bg-gray-200 dark:bg-darkBg rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+          <div className="w-full md:w-1/2 space-y-6">
+            <div className="h-4 bg-gray-200 dark:bg-darkBg w-24 rounded"></div>
+            <div className="h-8 bg-gray-200 dark:bg-darkBg w-3/4 rounded"></div>
+            <div className="h-6 bg-gray-200 dark:bg-darkBg w-1/4 rounded"></div>
+            <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-darkBorder">
+              <div className="h-4 bg-gray-200 dark:bg-darkBg w-full rounded"></div>
+              <div className="h-4 bg-gray-200 dark:bg-darkBg w-5/6 rounded"></div>
+              <div className="h-4 bg-gray-200 dark:bg-darkBg w-4/6 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!product) return <div className="p-10 text-center dark:text-white">Product not found</div>;
 
   const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
-  const canReview = user && orders.some(order => order.status === 'DELIVERED' && order.items.some(item => item.id === product.id));
+  const canReview = user && orders.some(order => order.status === OrderStatus.DELIVERED && order.items.some(item => item.id === product.id));
   const hasReviewed = user && product.reviews?.some(r => r.userId === user.id);
   
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
@@ -272,11 +302,13 @@ export const ProductDetails: React.FC = () => {
   };
 
   const handleQuantityBlur = () => {
-    if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
-      setQuantity(product.minimumOrderQuantity);
-      setQuantityError('');
-    } else if (quantity < 1 || isNaN(quantity)) {
+    if (quantity < 1 || isNaN(quantity)) {
       setQuantity(product.isWholesale && product.minimumOrderQuantity ? product.minimumOrderQuantity : 1);
+      setQuantityError('');
+    } else if (product.isWholesale && product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      // User typed a quantity less than MOQ. We leave it as typed so they see the error.
+      setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+    } else {
       setQuantityError('');
     }
   };
@@ -295,7 +327,10 @@ export const ProductDetails: React.FC = () => {
       return;
     }
     addToCart(product, selectedSize, quantity);
-    navigate('/checkout');
+    setBuyNowMessage('Added to cart! Redirecting...');
+    setTimeout(() => {
+      navigate('/checkout');
+    }, 1500);
   };
 
   return (
@@ -361,6 +396,8 @@ export const ProductDetails: React.FC = () => {
                {product.isWholesale ? (
                  !user ? (
                    <div className="text-xl font-bold text-accent">{t('loginToSeePrice')}</div>
+                 ) : (user.resellerStatus !== 'approved' && user.role !== 'reseller') ? (
+                   <div className="text-xl font-bold text-accent">Apply for Wholesale to see prices</div>
                  ) : (
                    <div>
                      <div className="flex items-end gap-2 mb-2">
@@ -426,9 +463,13 @@ export const ProductDetails: React.FC = () => {
                    <div className="flex items-center border dark:border-darkBorder rounded-lg overflow-hidden">
                      <button 
                        onClick={() => {
-                         const newQ = Math.max(product.isWholesale ? (product.minimumOrderQuantity || 1) : 1, quantity - 1);
+                         const newQ = Math.max(1, quantity - 1);
                          setQuantity(newQ);
-                         setQuantityError('');
+                         if (product.isWholesale && product.minimumOrderQuantity && newQ < product.minimumOrderQuantity) {
+                           setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+                         } else {
+                           setQuantityError('');
+                         }
                        }}
                        className="px-4 py-2 bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white transition"
                      >
@@ -440,12 +481,17 @@ export const ProductDetails: React.FC = () => {
                        onChange={handleQuantityChange}
                        onBlur={handleQuantityBlur}
                        className="w-16 text-center py-2 border-x dark:border-darkBorder dark:bg-darkCard dark:text-white outline-none"
-                       min={product.isWholesale ? (product.minimumOrderQuantity || 1) : 1}
+                       min={1}
                      />
                      <button 
                        onClick={() => {
-                         setQuantity(quantity + 1);
-                         setQuantityError('');
+                         const newQ = quantity + 1;
+                         setQuantity(newQ);
+                         if (product.isWholesale && product.minimumOrderQuantity && newQ < product.minimumOrderQuantity) {
+                           setQuantityError(`${t('moqRequired')} ${product.minimumOrderQuantity}`);
+                         } else {
+                           setQuantityError('');
+                         }
                        }}
                        className="px-4 py-2 bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white transition"
                      >
@@ -467,18 +513,35 @@ export const ProductDetails: React.FC = () => {
                  onClick={handleAddToCart} 
                  className="flex-1 py-4 text-xl shadow-lg shadow-primary/20" 
                  data-key="addToCart"
-                 disabled={product.isWholesale && !user}
+                 disabled={product.isWholesale && (!user || (user.resellerStatus !== 'approved' && user.role !== 'reseller'))}
                >
                  {t('addToCart')}
                </Button>
-               <Button 
-                 onClick={handleBuyNow} 
-                 className="flex-1 py-4 text-xl bg-accent hover:bg-yellow-600 text-white font-bold shadow-lg shadow-accent/20"
-                 data-key="buyNow"
-                 disabled={product.isWholesale && !user}
-               >
-                 {t('buyNow')}
-               </Button>
+               <div className="relative flex-1">
+                 <Button 
+                   onClick={handleBuyNow} 
+                   className="w-full h-full py-4 text-xl bg-accent hover:bg-yellow-600 text-white font-bold shadow-lg shadow-accent/20"
+                   data-key="buyNow"
+                   disabled={(product.isWholesale && (!user || (user.resellerStatus !== 'approved' && user.role !== 'reseller'))) || !!buyNowMessage}
+                 >
+                   {t('buyNow')}
+                 </Button>
+                 {buyNowMessage && (
+                   <motion.div 
+                     initial={{ opacity: 0, y: -10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 text-white text-[11px] md:text-xs px-4 py-2 rounded-lg shadow-xl whitespace-nowrap flex items-center gap-2 pointer-events-none z-50"
+                   >
+                     <ShoppingCart size={14} className="text-accent" />
+                     {buyNowMessage}
+                     <motion.div 
+                       animate={{ rotate: 360 }}
+                       transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                       className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full ml-1"
+                     />
+                   </motion.div>
+                 )}
+               </div>
              </div>
              {product.isWholesale && !user && (
                <p className="text-sm text-accent mt-2 text-center">{t('loginToSeePrice')}</p>

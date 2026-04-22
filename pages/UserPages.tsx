@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Button, ProductCard, Card, LoadingSpinner } from '../components/UIComponents';
+import { Button, ProductCard, Card, LoadingSpinner, AvatarRenderer } from '../components/UIComponents';
 import { Minus, Plus, Trash2, MapPin, Phone, CreditCard, ShoppingBag, Package, Heart, Wallet, Moon, Sun, Edit, Save, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
@@ -10,7 +10,7 @@ import { ImageUpload } from '../components/ImageUpload';
 
 // --- Cart Page ---
 export const Cart: React.FC = () => {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, t, language } = useStore();
+  const { cart, updateCartQuantity, removeFromCart, cartTotal, t, language, formatPrice } = useStore();
   
   if (cart.length === 0) {
     return (
@@ -232,23 +232,37 @@ export const Checkout: React.FC = () => {
 
           <h3 className="font-bold text-lg mt-8 mb-4 flex items-center gap-2" data-key="paymentMethod"><CreditCard size={18} /> {t('paymentMethod')}</h3>
           <div className="space-y-3">
-            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.COD ? 'border-primary bg-blue-50 dark:bg-white/5' : 'border-gray-100 dark:border-darkBorder'}`}>
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.COD ? 'border-primary bg-blue-50 dark:bg-white/5' : 'border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkCard'}`}>
               <input type="radio" name="payment" className="text-primary w-5 h-5" checked={paymentMethod === PaymentMethod.COD} onChange={() => setPaymentMethod(PaymentMethod.COD)} />
-              <div className="ml-4">
-                <span className="block font-bold text-gray-800 dark:text-white" data-key="cod">{t('cod')}</span>
-                <span className="text-xs text-gray-500" data-key="codDesc">{t('codDesc')}</span>
+              <div className="ml-4 flex items-center gap-3">
+                <img src="https://cdn-icons-png.flaticon.com/512/2800/2800244.png" alt="COD" className="w-8 h-8 object-contain" />
+                <div>
+                  <span className="block font-bold text-gray-800 dark:text-white" data-key="cod">{t('cod')}</span>
+                  <span className="text-xs text-gray-500" data-key="codDesc">{t('codDesc')}</span>
+                </div>
               </div>
             </label>
-            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.SSL ? 'border-primary bg-blue-50 dark:bg-white/5' : 'border-gray-100 dark:border-darkBorder'}`}>
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.SSL ? 'border-primary bg-blue-50 dark:bg-white/5' : 'border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkCard'}`}>
               <input type="radio" name="payment" className="text-primary w-5 h-5" checked={paymentMethod === PaymentMethod.SSL} onChange={() => setPaymentMethod(PaymentMethod.SSL)} />
-              <div className="ml-4 flex items-center gap-4">
+              <div className="ml-4 flex items-center gap-3">
+                <div className="flex gap-1 shrink-0">
+                  <img src="https://freelogopng.com/images/all_img/1656234745bkash-app-logo-png.png" alt="bKash" className="w-8 h-8 object-contain" />
+                  <img src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" alt="Nagad" className="w-8 h-8 object-contain" />
+                </div>
                 <div className="flex-1">
                   <span className="block font-bold text-gray-800 dark:text-white" data-key="onlinePayment">{t('onlinePayment')}</span>
-                  <span className="text-xs text-gray-500" data-key="onlinePaymentDesc">{t('onlinePaymentDesc')}</span>
+                  <span className="text-xs text-gray-500" data-key="onlinePaymentDesc">Pay securely with bKash, Nagad, Cards etc. via SSLCommerz</span>
                 </div>
               </div>
             </label>
           </div>
+          {paymentMethod === PaymentMethod.SSL && (
+            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-xl">
+               <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                 <strong>Note for Developer:</strong> To process real payments via bKash/Nagad using SSLCommerz or Aamarpay, you need a merchant account and a backend server (Node.js/Express) to generate session tokens and handle IPN validation securely. Client-side only payment integration is not secure and not supported by local payment gateways. This option simulates a successful order.
+               </p>
+            </div>
+          )}
         </Card>
 
         <div className="w-full lg:w-96">
@@ -397,14 +411,7 @@ export const Profile: React.FC = () => {
     return null;
   }
 
-  const AVATARS = [
-    'https://picsum.photos/seed/avatar1/200/200',
-    'https://picsum.photos/seed/avatar2/200/200',
-    'https://picsum.photos/seed/avatar3/200/200',
-    'https://picsum.photos/seed/avatar4/200/200',
-    'https://picsum.photos/seed/avatar5/200/200',
-    'https://picsum.photos/seed/avatar6/200/200',
-  ];
+  const AVATARS = Array.from({ length: 20 }, (_, i) => `sprite:${i}`);
 
   const handleSaveProfile = () => {
     updateProfile(editName, editAvatar);
@@ -446,7 +453,7 @@ export const Profile: React.FC = () => {
            <div className="flex flex-col items-center mb-6">
              <div className="relative group">
                <div className="w-24 h-24 bg-gray-200 rounded-full mb-3 overflow-hidden border-4 border-primary/20 shadow-lg">
-                 <img src={isEditing ? editAvatar : user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                 <AvatarRenderer avatar={isEditing ? editAvatar : user.avatar} />
                </div>
                {isEditing && (
                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white dark:bg-darkCard shadow-md rounded-full px-2 py-1 text-[10px] font-bold whitespace-nowrap border dark:border-darkBorder" data-key="changeAvatar">
@@ -474,9 +481,9 @@ export const Profile: React.FC = () => {
                        <button 
                          key={idx} 
                          onClick={() => setEditAvatar(av)}
-                         className={`w-10 h-10 rounded-full overflow-hidden border-2 ${editAvatar === av ? 'border-primary scale-110' : 'border-transparent hover:border-gray-300'} transition`}
+                         className={`w-10 h-10 flex-shrink-0 rounded-full overflow-hidden border-2 ${editAvatar === av ? 'border-primary scale-110 shadow-md' : 'border-transparent hover:border-gray-300'} transition`}
                        >
-                         <img src={av} alt={`av-${idx}`} className="w-full h-full object-cover" />
+                         <AvatarRenderer avatar={av} />
                        </button>
                      ))}
                    </div>
@@ -553,7 +560,7 @@ export const Profile: React.FC = () => {
                        {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - {formatPrice((item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100))) * item.quantity)}
                      </div>
                      {order.status === OrderStatus.DELIVERED && (
-                       <Button variant="outline" size="sm" onClick={() => handleOpenReview(item.id)} className="text-xs py-1 h-auto">
+                       <Button variant="outline" onClick={() => handleOpenReview(item.id)} className="text-xs py-1 h-auto">
                          Leave Review
                        </Button>
                      )}
@@ -636,7 +643,12 @@ export const Login: React.FC = () => {
       navigate('/');
     } catch (error: any) {
       console.error(error);
-      showToast(error.message, "error");
+      let errorMsg = error.message;
+      if (error.code === 'auth/invalid-credential') errorMsg = "ইমেইল অথবা পাসওয়ার্ড ভুল হয়েছে।";
+      else if (error.code === 'auth/user-not-found') errorMsg = "এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি।";
+      else if (error.code === 'auth/wrong-password') errorMsg = "পাসওয়ার্ড সঠিক নয়।";
+      else if (error.code === 'auth/email-already-in-use') errorMsg = "এই ইমেইলটি ইতিমধ্যে ব্যবহৃত হয়েছে।";
+      showToast(errorMsg, "error");
     } finally {
       setLoading(false);
     }
@@ -651,7 +663,11 @@ export const Login: React.FC = () => {
       navigate('/');
     } catch (error: any) {
       console.error(error);
-      showToast(error.message, "error");
+      let errorMsg = error.message;
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMsg = "উইন্ডো পপআপ ব্লক করা আছে অথবা ডোমেইন পারমিশন দেওয়া নেই। দয়া করে ভিটা (Vercel) থেকে 'Authorized Domains'-এ আপনার সাইটের লিংক (যেমন: app-name.vercel.app) যুক্ত করুন (Firebase Console -> Authentication -> Settings -> Authorized Domains)।";
+      }
+      showToast(errorMsg, "error");
     }
   };
 

@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="NUR - আপনার স্বপ্নের প্রিমিয়াম লাইফস্টাইল ই-কমার্স প্ল্যাটফর্ম। শপিং হোক নিশ্চিন্তে। Premium shopping experience with retail and wholesale offers in Bangladesh." />
+    <meta name="keywords" content="NUR, e-commerce, online shopping bangladesh, premium clothing, women fashion, retail, wholesale clothes bangladesh, ai try on, ai fashion" />
+    <meta name="author" content="NUR e-commerce">
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph for Social Media/SEO -->
+    <meta property="og:title" content="NUR | শপিং হোক নিশ্চিন্তে" />
+    <meta property="og:description" content="NUR - আপনার স্বপ্নের প্রিমিয়াম লাইফস্টাইল ই-কমার্স প্ল্যাটফর্ম। শপিং হোক নিশ্চিন্তে।" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nur.com.bd" />
+    
     <title>NUR | শপিং হোক নিশ্চিন্তে</title>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3799401239434232" crossorigin="anonymous"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,16 +87,44 @@
           -ms-overflow-style: none;
           scrollbar-width: none;
       }
-      
-      /* Scroll Reveal Animation */
-      .reveal {
-        opacity: 0;
-        transform: translateY(30px);
-        transition: all 0.6s cubic-bezier(0.5, 0, 0, 1);
+
+      /* Premium Interactions */
+      .icon-interactive {
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
       }
-      .reveal.active {
-        opacity: 1;
-        transform: translateY(0);
+      .icon-interactive:active {
+        transform: scale(0.9);
+      }
+
+      /* Markdown Styles */
+      .markdown-body p { margin-bottom: 0.5em; }
+      .markdown-body p:last-child { margin-bottom: 0; }
+      .markdown-body strong { font-weight: 600; color: inherit; }
+      .markdown-body ul { list-style-type: disc; padding-left: 1.25em; margin-bottom: 0.5em; }
+      .markdown-body ol { list-style-type: decimal; padding-left: 1.25em; margin-bottom: 0.5em; }
+      .markdown-body li { margin-bottom: 0.25em; }
+      .markdown-body a { color: #facc15; text-decoration: underline; }
+      
+      .btn-navy-gold {
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-navy-gold::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.4s ease-out, height 0.4s ease-out;
+      }
+      .btn-navy-gold:active::after {
+        width: 200%;
+        height: 200%;
+        transition: 0s;
       }
 
       /* Premium Loading Animation */

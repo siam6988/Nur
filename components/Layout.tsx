@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe, Camera, Loader2, PlaySquare } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, Phone, Facebook, Instagram, Twitter, MapPin, Heart, Moon, Sun, Globe, Camera, Loader2, PlaySquare, Sparkles } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { CATEGORIES } from '../constants';
-import { Toast } from './UIComponents';
+import { Toast, AvatarRenderer } from './UIComponents';
 import { Currency } from '../types';
 import { analyzeImageForSearch } from '../services/gemini';
 
@@ -51,7 +51,7 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 bg-white dark:bg-darkCard shadow-md dark:shadow-none border-b dark:border-darkBorder transition-colors duration-300">
       {/* Top Bar */}
       <div className="bg-primary dark:bg-primary/20 text-white text-xs py-1">
-        <div className="container mx-auto px-4 flex justify-between items-center">
+        <div className="container mx-auto px-6 lg:px-8 flex justify-between items-center">
           <p data-key="tagline">{t('tagline')}</p>
           <div className="flex space-x-4">
             <span className="cursor-pointer hover:text-accent" data-key="mobileApp">{t('mobileApp')}</span>
@@ -61,7 +61,7 @@ export const Navbar: React.FC = () => {
       </div>
 
       {/* Main Nav */}
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="text-2xl font-bold text-primary dark:text-white tracking-tighter flex items-center">
@@ -144,7 +144,9 @@ export const Navbar: React.FC = () => {
             {user ? (
               <div className="relative group">
                 <Link to="/profile" className="flex items-center space-x-1 text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-white group-hover:text-accent">
-                  <User size={24} className="icon-interactive" />
+                  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 dark:border-darkBorder">
+                     <AvatarRenderer avatar={user.avatar} />
+                  </div>
                   <span className="hidden md:inline font-medium text-sm truncate max-w-[100px]">{user.name}</span>
                 </Link>
                 {/* Dropdown */}
@@ -196,7 +198,7 @@ export const Navbar: React.FC = () => {
 
       {/* Categories Bar - Desktop */}
       <div className="hidden md:block border-t border-gray-100 dark:border-darkBorder bg-white dark:bg-darkCard">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-6 lg:px-8">
           <div className="flex space-x-8 py-2 overflow-x-auto no-scrollbar items-center">
             <Link to="/shop" className="text-sm font-bold text-primary dark:text-white hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
               <ShoppingCart size={14} /> {t('retail')}
@@ -204,8 +206,8 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="text-sm font-bold text-accent hover:text-yellow-600 whitespace-nowrap flex items-center gap-1">
               <ShoppingCart size={14} /> {t('wholesale')}
             </Link>
-            <Link to="/studio" className="text-sm font-bold text-blue-500 hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
-              <PlaySquare size={14} /> Studio AI
+            <Link to="/trial-room" className="text-sm font-bold text-blue-500 hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
+              <Sparkles size={14} /> AI Trial Room
             </Link>
             <div className="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
             {categories.map(cat => (
@@ -226,8 +228,8 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
               {t('wholesale')}
             </Link>
-            <Link to="/studio" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
-              Studio AI
+            <Link to="/trial-room" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
+              AI Trial Room
             </Link>
             <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
@@ -245,66 +247,70 @@ export const Footer: React.FC = () => {
   const { t } = useStore();
   
   return (
-    <footer className="bg-gray-900 text-gray-300 pt-12 pb-6 border-t border-gray-800">
-      <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <h3 className="text-2xl font-bold text-white mb-4">NUR<span className="text-accent">.</span></h3>
-          <p className="text-sm leading-relaxed mb-4" data-key="footerDesc">
+    <footer className="bg-gray-900 text-gray-300 pt-16 pb-8 border-t border-gray-800">
+      <div className="container mx-auto px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+        <div className="flex flex-col space-y-4">
+          <h3 className="text-3xl font-bold text-white tracking-tighter">NUR<span className="text-accent">.</span></h3>
+          <p className="text-sm leading-relaxed text-gray-400 max-w-xs" data-key="footerDesc">
             {t('footerDesc')}
           </p>
-          <div className="flex space-x-4">
-            <Facebook className="icon-interactive hover:text-accent cursor-pointer transition" />
-            <Instagram className="icon-interactive hover:text-accent cursor-pointer transition" />
-            <Twitter className="icon-interactive hover:text-accent cursor-pointer transition" />
+          <div className="flex space-x-4 pt-2">
+            <Facebook className="icon-interactive hover:text-accent cursor-pointer transition transform hover:-translate-y-1" />
+            <Instagram className="icon-interactive hover:text-accent cursor-pointer transition transform hover:-translate-y-1" />
+            <Twitter className="icon-interactive hover:text-accent cursor-pointer transition transform hover:-translate-y-1" />
           </div>
         </div>
 
-        <div>
-          <h4 className="text-lg font-semibold text-white mb-4" data-key="quickLinks">{t('quickLinks')}</h4>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/about" className="hover:text-white transition" data-key="aboutUs">{t('aboutUs')}</Link></li>
-            <li><Link to="/shipping" className="hover:text-white transition" data-key="shippingPolicy">{t('shippingPolicy')}</Link></li>
-            <li><Link to="/affiliate" className="hover:text-accent transition font-bold text-accent" data-key="affiliate">{t('affiliate')}</Link></li>
-            <li><Link to="/policy" className="hover:text-white transition" data-key="privacyPolicy">{t('privacyPolicy')}</Link></li>
-            <li><Link to="/terms" className="hover:text-white transition" data-key="terms">{t('terms')}</Link></li>
-            <li><Link to="/contact" className="hover:text-white transition" data-key="contactUs">{t('contactUs')}</Link></li>
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-lg font-bold text-white" data-key="quickLinks">{t('quickLinks')}</h4>
+          <ul className="space-y-3 text-sm text-gray-400">
+            <li><Link to="/about" className="hover:text-white hover:underline transition" data-key="aboutUs">{t('aboutUs')}</Link></li>
+            <li><Link to="/blogs" className="hover:text-white hover:underline transition">আমাদের ব্লগ</Link></li>
+            <li><Link to="/shipping" className="hover:text-white hover:underline transition" data-key="shippingPolicy">{t('shippingPolicy')}</Link></li>
+            <li><Link to="/affiliate" className="hover:text-accent hover:underline transition font-bold text-accent" data-key="affiliate">{t('affiliate')}</Link></li>
+            <li><Link to="/policy" className="hover:text-white hover:underline transition" data-key="privacyPolicy">{t('privacyPolicy')}</Link></li>
+            <li><Link to="/terms" className="hover:text-white hover:underline transition" data-key="terms">{t('terms')}</Link></li>
+            <li><Link to="/contact" className="hover:text-white hover:underline transition" data-key="contactUs">{t('contactUs')}</Link></li>
           </ul>
         </div>
 
-        <div>
-          <h4 className="text-lg font-semibold text-white mb-4" data-key="customerArea">{t('customerArea')}</h4>
-          <ul className="space-y-2 text-sm">
-            <li><Link to="/profile" className="hover:text-white transition" data-key="myAccount">{t('myAccount')}</Link></li>
-            <li><Link to="/orders" className="hover:text-white transition" data-key="trackOrder">{t('trackOrder')}</Link></li>
-            <li><Link to="/cart" className="hover:text-white transition" data-key="shoppingCart">{t('shoppingCart')}</Link></li>
-            <li><Link to="/wishlist" className="hover:text-white transition" data-key="wishlist">{t('wishlist')}</Link></li>
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-lg font-bold text-white" data-key="customerArea">{t('customerArea')}</h4>
+          <ul className="space-y-3 text-sm text-gray-400">
+            <li><Link to="/profile" className="hover:text-white hover:underline transition" data-key="myAccount">{t('myAccount')}</Link></li>
+            <li><Link to="/orders" className="hover:text-white hover:underline transition" data-key="trackOrder">{t('trackOrder')}</Link></li>
+            <li><Link to="/cart" className="hover:text-white hover:underline transition" data-key="shoppingCart">{t('shoppingCart')}</Link></li>
+            <li><Link to="/wishlist" className="hover:text-white hover:underline transition" data-key="wishlist">{t('wishlist')}</Link></li>
           </ul>
         </div>
 
-        <div>
-          <h4 className="text-lg font-semibold text-white mb-4" data-key="contact">{t('contact')}</h4>
-          <ul className="space-y-3 text-sm">
-            <li className="flex items-start space-x-2">
-              <MapPin size={18} className="mt-1 flex-shrink-0 text-accent" />
-              <span>Hocker's Market, Bondor Bazar, Sylhet</span>
+        <div className="flex flex-col space-y-4">
+          <h4 className="text-lg font-bold text-white" data-key="contact">{t('contact')}</h4>
+          <ul className="space-y-4 text-sm text-gray-400">
+            <li className="flex items-start space-x-3">
+              <MapPin size={20} className="mt-0.5 flex-shrink-0 text-accent" />
+              <span className="leading-relaxed">Hocker's Market, Bondor Bazar, Sylhet</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <Phone size={18} className="text-accent" />
-              <span className="font-bold">+880 1736118083</span>
+            <li className="flex items-center space-x-3">
+              <Phone size={20} className="text-accent flex-shrink-0" />
+              <span className="font-bold text-white">+880 1736118083</span>
             </li>
           </ul>
-          <div className="mt-8">
-             <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Accepted Payments</span>
-             <div className="flex flex-wrap gap-2 mt-3">
-                <span className="bg-gray-800 border border-gray-700 px-3 py-1 rounded text-[10px] font-bold text-white uppercase">Bkash</span>
-                <span className="bg-gray-800 border border-gray-700 px-3 py-1 rounded text-[10px] font-bold text-white uppercase">Nogod</span>
-                <span className="bg-gray-800 border border-gray-700 px-3 py-1 rounded text-[10px] font-bold text-white uppercase text-accent">COD</span>
+          <div className="mt-8 pt-4 border-t border-gray-800/50">
+             <span className="text-xs text-gray-500 uppercase font-bold tracking-wider block mb-3">Accepted Payments</span>
+             <div className="flex flex-wrap gap-2">
+                <span className="bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-md text-[10px] font-bold text-white uppercase shadow-sm">Bkash</span>
+                <span className="bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-md text-[10px] font-bold text-white uppercase shadow-sm">Nogod</span>
+                <span className="bg-gray-800 border border-accent/20 px-3 py-1.5 rounded-md text-[10px] font-bold text-white uppercase text-accent shadow-sm">COD</span>
              </div>
           </div>
         </div>
       </div>
-      <div className="border-t border-gray-800 mt-10 pt-6 text-center text-xs text-gray-500">
-        &copy; {new Date().getFullYear()} NUR E-commerce. Designed for Trust & Excellence in Sylhet, Bangladesh.
+      <div className="container mx-auto px-6 lg:px-8">
+        <div className="border-t border-gray-800 mt-12 pt-8 text-center md:flex md:justify-between md:items-center text-xs text-gray-500">
+          <p>&copy; {new Date().getFullYear()} NUR E-commerce. Designed for Trust & Excellence in Sylhet.</p>
+          <p className="mt-2 md:mt-0">All rights reserved.</p>
+        </div>
       </div>
     </footer>
   );

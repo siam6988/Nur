@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
+import Markdown from 'react-markdown';
 import { useStore } from '../context/StoreContext';
 
 interface Message {
@@ -14,7 +15,7 @@ export const ChatBot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { theme, t } = useStore();
+  const { theme, t, user, orders, products } = useStore();
   const [chatSession, setChatSession] = useState<any>(null);
 
   // Auto scroll to bottom
@@ -27,19 +28,54 @@ export const ChatBot: React.FC = () => {
     if (isOpen && !chatSession) {
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        
+        const catalogInfo = products.map(p => `- ${p.name_en || p.name_bn}: ${p.price} BDT (Stock: ${p.stock > 0 ? 'Available' : 'Out of Stock'})`).join('\n').substring(0, 5000); // Truncate just in case
+        
+        const userOrders = user 
+          ? orders.filter(o => o.userId === user.id).map(o => `- Order #${o.id.substring(0, 6)}: Status is ${o.status}, Total: ${o.finalTotal} BDT`).join('\n')
+          : 'User is not logged in or has no recent orders.';
+
+        const systemInstruction = `
+You are a helpful customer support agent for NUR, a premium e-commerce store in Bangladesh.
+Be concise, polite, and responsive in both Bengali and English based on the user's language. Use emojis warmly.
+
+STORE POLICIES:
+- Delivery charge: Inside Dhaka 60 BDT (2-3 days), Outside Dhaka 120 BDT (3-5 days). Free shipping on select items.
+- Return Policy: 7 days easy return if the product is defective.
+- Payment Methods: Cash on Delivery (COD), bKash, SSLCommerz.
+- Wholesale: Minimum order quantity applies. We offer tiered pricing.
+
+USER CONTEXT:
+${user ? `Name: ${user.name}, Email: ${user.email}` : 'Guest User'}
+
+USER ORDERS:
+${userOrders}
+(If a user asks about their order, use the above info. If they are an anonymous Guest, tell them to log in to track their orders.)
+
+PRODUCT CATALOG (Available Items):
+${catalogInfo.length > 0 ? catalogInfo : 'Catalog is loading...'}
+
+INSTRUCTIONS:
+1. Answer questions based ONLY on the catalog and policies provided.
+2. Provide short, concise answers.
+3. If a product isn't in the catalog list, say it's not currently available or you can't find it.
+4. If a user wants to buy something, guide them to use the search bar or navigate to the Shop page.
+`;
+
         const chat = ai.chats.create({
           model: 'gemini-3.1-pro-preview',
           config: {
-            systemInstruction: "You are a helpful customer support agent for NUR, a premium e-commerce store in Bangladesh. You help users find products, track orders, and provide store policies. Be concise, polite, and responsive in both Bengali and English based on the user's language.",
+            systemInstruction: systemInstruction,
+            temperature: 0.2, // Keep it grounded
           }
         });
         setChatSession(chat);
-        setMessages([{ role: 'model', text: 'Hello! Welcome to NUR. How can I help you today?' }]);
+        setMessages([{ role: 'model', text: 'Hello! Welcome to NUR support. 👋 How can I help you today with your orders or finding products?' }]);
       } catch (e) {
         console.error("Chat initialization error", e);
       }
     }
-  }, [isOpen, chatSession]);
+  }, [isOpen, chatSession, products, user, orders]);
 
   const handleSend = async () => {
     if (!input.trim() || !chatSession || isLoading) return;
@@ -106,7 +142,13 @@ export const ChatBot: React.FC = () => {
                   {msg.role === 'user' ? <User size={12} /> : <Bot size={12} />}
                 </div>
                 <div className={`p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-white dark:bg-darkCard dark:text-gray-200 border border-gray-100 dark:border-darkBorder shadow-sm rounded-bl-none'}`}>
-                  {msg.text}
+                  {msg.role === 'model' ? (
+                    <div className="markdown-body text-[13px] leading-relaxed max-w-none">
+                      <Markdown>{msg.text}</Markdown>
+                    </div>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </div>
             ))}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { ChevronRight, Home as HomeIcon } from 'lucide-react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Layout } from './components/Layout';
@@ -8,9 +9,9 @@ import { ChatBot } from './components/ChatBot';
 import Home from './pages/Home';
 import { Shop, ProductDetails } from './pages/ProductPages';
 import { Wholesale } from './pages/Wholesale';
-import { VideoStudio } from './pages/VideoStudio';
+import { TrialRoom } from './pages/TrialRoom';
 import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
-import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy } from './pages/StaticPages';
+import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy, Blogs } from './pages/StaticPages';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -18,31 +19,6 @@ const ScrollToTop = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  return null;
-};
-
-// Global Scroll Reveal Observer
-const ScrollRevealObserver = () => {
-  const { pathname } = useLocation();
-  
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
-      });
-    }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
-
-    // Ensure DOM is ready before observing
-    setTimeout(() => {
-      const revealElements = document.querySelectorAll('.reveal');
-      revealElements.forEach(el => observer.observe(el));
-    }, 100);
-
-    return () => observer.disconnect();
-  }, [pathname]);
-
   return null;
 };
 
@@ -97,6 +73,53 @@ const Breadcrumbs = () => {
   );
 };
 
+const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -15 }}
+        transition={{ duration: 0.3 }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+        <Route path="/shop" element={<PageWrapper><Shop /></PageWrapper>} />
+        <Route path="/wholesale" element={<PageWrapper><Wholesale /></PageWrapper>} />
+        <Route path="/trial-room" element={<PageWrapper><TrialRoom /></PageWrapper>} />
+        <Route path="/product/:id" element={<PageWrapper><ProductDetails /></PageWrapper>} />
+        <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
+        <Route path="/checkout" element={<PageWrapper><Checkout /></PageWrapper>} />
+        <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
+        <Route path="/orders" element={<PageWrapper><Profile /></PageWrapper>} />
+        <Route path="/wishlist" element={<PageWrapper><Wishlist /></PageWrapper>} />
+        <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
+        
+        {/* Static Pages */}
+        <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+        <Route path="/blogs" element={<PageWrapper><Blogs /></PageWrapper>} />
+        <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
+        <Route path="/policy" element={<PageWrapper><Policy /></PageWrapper>} />
+        <Route path="/terms" element={<PageWrapper><Terms /></PageWrapper>} />
+        <Route path="/shipping" element={<PageWrapper><ShippingPolicy /></PageWrapper>} />
+        <Route path="/affiliate" element={<PageWrapper><Affiliate /></PageWrapper>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 // Wrap main app to consume context and tie animation to real loading state
 const AppContent: React.FC = () => {
   const { isLoading } = useStore();
@@ -104,14 +127,24 @@ const AppContent: React.FC = () => {
   const [finishLoading, setFinishLoading] = useState(false);
 
   useEffect(() => {
+    // Force finish after 3 seconds maximum to prevent hanging
+    const forceTimer = setTimeout(() => {
+      setFinishLoading(true);
+      setTimeout(() => setInitialLoading(false), 500);
+    }, 3000);
+
     if (!isLoading) {
-      // Once products and categories finish fetching, trigger fade out
       setFinishLoading(true);
       const timer = setTimeout(() => {
         setInitialLoading(false);
-      }, 500); // Wait for fade out animation
-      return () => clearTimeout(timer);
+      }, 500);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(forceTimer);
+      };
     }
+    
+    return () => clearTimeout(forceTimer);
   }, [isLoading]);
 
   return (
@@ -119,30 +152,9 @@ const AppContent: React.FC = () => {
       {initialLoading && <ThemeLoader finish={finishLoading} />}
       <HashRouter>
         <ScrollToTop />
-        <ScrollRevealObserver />
         <Layout>
           <Breadcrumbs />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/wholesale" element={<Wholesale />} />
-            <Route path="/studio" element={<VideoStudio />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/orders" element={<Profile />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/login" element={<Login />} />
-            
-            {/* Static Pages */}
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/policy" element={<Policy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/shipping" element={<ShippingPolicy />} />
-            <Route path="/affiliate" element={<Affiliate />} />
-          </Routes>
+          <AnimatedRoutes />
         </Layout>
         <ChatBot />
       </HashRouter>

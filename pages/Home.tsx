@@ -4,7 +4,7 @@ import { ProductCard, LoadingSpinner } from '../components/UIComponents';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
-import { motion } from 'motion/react';
+import { motion, useScroll, useTransform } from 'motion/react';
 
 const CountdownTimer = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -51,6 +51,10 @@ const Home: React.FC = () => {
   const { products, isLoading, t, recentlyViewed, categories, language, banners } = useStore();
   const [currentBanner, setCurrentBanner] = useState(0);
 
+  // Parallax setup
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 500], [0, 150]);
+
   // Auto slide banner
   useEffect(() => {
     if (!banners || banners.length === 0) return;
@@ -60,14 +64,6 @@ const Home: React.FC = () => {
     return () => clearInterval(timer);
   }, [banners]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   const retailProducts = products.filter(p => !p.isWholesale);
   const featuredProducts = retailProducts.slice(0, 8);
   const flashSaleProducts = retailProducts.filter(p => p.discountPercentage > 10).slice(0, 8);
@@ -75,7 +71,7 @@ const Home: React.FC = () => {
   return (
     <div className="space-y-12 pb-12">
       {/* Banner Slider Reserved Space */}
-      <div className="container mx-auto px-4 reveal">
+      <div className="container mx-auto px-4">
         <div className="relative w-full h-[200px] md:h-[400px] overflow-hidden rounded-2xl bg-gray-100 dark:bg-darkCard/50 border-2 border-dashed border-gray-300 dark:border-darkBorder flex items-center justify-center">
           {!banners || banners.length === 0 ? (
             <div className="text-center p-6 text-gray-400">
@@ -89,7 +85,9 @@ const Home: React.FC = () => {
                   key={banner.id}
                   className={`absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
                 >
-                  <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                  <motion.div style={{ y: y1 }} className="absolute inset-0 w-full h-[150%] -top-[25%] pointer-events-none">
+                    <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                  </motion.div>
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent flex items-center">
                     <div className="container mx-auto px-4 md:px-8">
                       <h2 className="text-2xl md:text-5xl font-bold text-white mb-4 drop-shadow-md">{banner.title}</h2>
@@ -116,7 +114,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Services Features */}
-      <div className="container mx-auto px-4 reveal">
+      <div className="container mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder transition-colors">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-blue-50 dark:bg-white/5 rounded-full text-primary dark:text-blue-400"><Truck size={24} /></div>
@@ -150,7 +148,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Flash Sale */}
-      <div className="container mx-auto px-4 reveal">
+      <div className="container mx-auto px-4">
         <div className="flex justify-between items-end mb-6">
           <div>
             <div className="flex items-center gap-4">
@@ -189,34 +187,51 @@ const Home: React.FC = () => {
       </div>
 
       {/* Categories Grid (Masonry/Bento) */}
-      <div className="container mx-auto px-4 reveal">
+      <div className="container mx-auto px-4">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="popularCategories">{t('popularCategories')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[150px] md:auto-rows-[200px]">
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={{
+            visible: { transition: { staggerChildren: 0.1 } },
+            hidden: {}
+          }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[150px] md:auto-rows-[200px]"
+        >
           {categories.filter(c => c.id !== 'all').map((cat, idx) => (
-             <Link 
-               key={cat.id} 
-               to={`/shop?category=${cat.id}`} 
-               className={`group relative rounded-2xl overflow-hidden bg-gray-200 dark:bg-darkCard shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1 ${idx === 0 ? 'col-span-2 row-span-2 md:col-span-2 md:row-span-2' : ''} ${idx === 3 ? 'md:col-span-2' : ''} ${idx === 4 ? 'row-span-2' : ''}`}
+             <motion.div
+               key={cat.id}
+               variants={{
+                 hidden: { opacity: 0, y: 30, scale: 0.95 },
+                 visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 100 } }
+               }}
+               className={`${idx === 0 ? 'col-span-2 row-span-2 md:col-span-2 md:row-span-2' : ''} ${idx === 3 ? 'md:col-span-2' : ''} ${idx === 4 ? 'row-span-2' : ''} h-full`}
              >
-               <img 
-                 src={cat.image || `https://picsum.photos/seed/${cat.id}/800/800`} 
-                 alt={language === 'bn' ? cat.name_bn : cat.name_en} 
-                 className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out" 
-                 loading="lazy"
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-5 md:p-6 flex flex-col justify-end">
-                 <span className="text-white text-xl md:text-3xl font-bold tracking-tight drop-shadow-md transform group-hover:-translate-y-2 transition-transform duration-300">{language === 'bn' ? cat.name_bn : cat.name_en}</span>
-                 <span className="text-accent text-sm md:text-base opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 font-semibold flex items-center mt-1">
-                   {t('shopNow')} <ChevronRight size={16} className="ml-1" />
-                 </span>
-               </div>
-             </Link>
+               <Link 
+                 to={`/shop?category=${cat.id}`} 
+                 className={`block w-full h-full group relative rounded-2xl overflow-hidden bg-gray-200 dark:bg-darkCard shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1`}
+               >
+                 <img 
+                   src={cat.image || `https://picsum.photos/seed/${cat.id}/800/800`} 
+                   alt={language === 'bn' ? cat.name_bn : cat.name_en} 
+                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out" 
+                   loading="lazy"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-5 md:p-6 flex flex-col justify-end">
+                   <span className="text-white text-xl md:text-3xl font-bold tracking-tight drop-shadow-md transform group-hover:-translate-y-2 transition-transform duration-300">{language === 'bn' ? cat.name_bn : cat.name_en}</span>
+                   <span className="text-accent text-sm md:text-base opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 font-semibold flex items-center mt-1">
+                     {t('shopNow')} <ChevronRight size={16} className="ml-1" />
+                   </span>
+                 </div>
+               </Link>
+             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* Just For You / Featured (Carousel) */}
-      <div className="container mx-auto px-4 reveal">
+      <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
            <h2 className="text-2xl font-bold text-gray-800 dark:text-white" data-key="justForYou">{t('justForYou')}</h2>
            <Link to="/shop" className="bg-white dark:bg-darkCard dark:text-white border border-gray-200 dark:border-darkBorder px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/5 shadow-sm hover:shadow" data-key="seeMore">{t('seeMore')}</Link>
@@ -248,13 +263,31 @@ const Home: React.FC = () => {
 
       {/* Recently Viewed */}
       {recentlyViewed.length > 0 && (
-        <div className="container mx-auto px-4 reveal">
+        <div className="container mx-auto px-4 mt-12">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="recentlyViewed">{t('recentlyViewed')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {recentlyViewed.slice(0, 4).map(product => (
-              <ProductCard key={product.id} product={product} />
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } },
+              hidden: {}
+            }}
+            className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
+          >
+            {recentlyViewed.map((product, index) => (
+              <motion.div 
+                key={product.id} 
+                variants={{
+                  hidden: { opacity: 0, scale: 0.9, y: 20 },
+                  visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 120 } }
+                }}
+                className="min-w-[200px] md:min-w-[260px] snap-start flex-none"
+              >
+                <ProductCard product={product} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

@@ -34,11 +34,12 @@ interface StoreContextType {
   login: (email: string, name?: string) => Promise<void>;
   logout: () => void;
   updateProfile: (name: string, avatar: string) => void;
-  addToCart: (product: Product, size: string) => void;
+  addToCart: (product: Product, size: string, quantity?: number) => void;
   removeFromCart: (cartId: string) => void;
   updateCartQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   toggleWishlist: (product: Product) => void;
+  calculateAppliedPrice: (product: Product, quantity: number) => number;
   placeOrder: (shippingDetails: any, paymentMethod: any, discountAmount?: number, usedPoints?: number) => Promise<boolean>;
   cancelOrder: (orderId: string) => void;
   addReview: (productId: string, rating: number, comment: string) => void;
@@ -380,7 +381,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const addToRecentlyViewed = (product: Product) => {
     setRecentlyViewed(prev => {
       const filtered = prev.filter(p => p.id !== product.id);
-      return [product, ...filtered].slice(0, 10);
+      const updated = [product, ...filtered].slice(0, 10);
+      localStorage.setItem('nur_recently_viewed', JSON.stringify(updated));
+      return updated;
     });
   };
 
@@ -565,7 +568,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      user, products, categories, banners, cart, wishlist, orders, toast, isLoading, theme, language, currency, setTheme, setLanguage, setCurrency, formatPrice, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon
+      user, products, categories, banners, cart, wishlist, orders, toast, isLoading, theme, language, currency, setTheme, setLanguage, setCurrency, formatPrice, t, login, logout, updateProfile, addToCart, removeFromCart, updateCartQuantity, clearCart, toggleWishlist, placeOrder, cancelOrder, addReview, cartTotal, isAuthenticated: !!user, recentlyViewed, addToRecentlyViewed, showToast, validateCoupon, calculateAppliedPrice
     }}>
       {children}
     </StoreContext.Provider>

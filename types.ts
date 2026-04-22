@@ -27,7 +27,19 @@ export interface User {
   avatar?: string;
   phone?: string;
   address?: string;
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'user' | 'reseller';
+  resellerStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+}
+
+export interface ResellerApplication {
+  userId: string;
+  shopName: string;
+  description: string;
+  phone: string;
+  address: string;
+  visitingCardImage: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
 }
 
 export interface Review {
@@ -111,4 +123,16 @@ export interface Banner {
   imageUrl: string;
   title: string;
   link: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  image: string;
+  excerpt: string;
+  content: string;
+  createdAt: string;
+  isActive?: boolean;
 }

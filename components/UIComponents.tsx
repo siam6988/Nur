@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { Star, ShoppingCart, Heart, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Star, ShoppingCart, Heart, CheckCircle, XCircle, Loader2, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 
@@ -45,6 +45,28 @@ export const LoadingSpinner: React.FC = () => {
   return <Loader2 className="animate-spin text-primary dark:text-accent" size={24} />;
 };
 
+export const AvatarRenderer: React.FC<{ avatar: string | undefined, className?: string }> = ({ avatar, className = "w-full h-full object-cover" }) => {
+  if (avatar?.startsWith('sprite:')) {
+    const index = parseInt(avatar.split(':')[1], 10);
+    const row = Math.floor(index / 5);
+    const col = index % 5;
+    const posX = col * 25;
+    const posY = row * 33.3333;
+    return (
+      <div 
+        className={className} 
+        style={{
+          backgroundImage: "url('/avatars.jpg')",
+          backgroundSize: '500% 400%',
+          backgroundPosition: `${posX}% ${posY}%`,
+          backgroundColor: '#fff'
+        }}
+      />
+    );
+  }
+  return <img src={avatar || 'https://picsum.photos/seed/user_avatar/100/100'} alt="avatar" className={className} />;
+};
+
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { addToCart, wishlist, toggleWishlist, language, user, t, formatPrice } = useStore();
   const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
@@ -54,10 +76,15 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
   // Wholesale pricing logic
   let priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">{formatPrice(discountedPrice)}</span>;
+  let canAddToCart = true;
   
   if (product.isWholesale) {
     if (!user) {
       priceDisplay = <span className="text-accent font-bold text-xs md:text-sm">{t('loginToSeePrice')}</span>;
+      canAddToCart = false;
+    } else if (user.resellerStatus !== 'approved' && user.role !== 'reseller') {
+      priceDisplay = <span className="text-accent font-bold text-xs md:text-sm">Apply for Wholesale</span>;
+      canAddToCart = false;
     } else if (product.tierPricing && product.tierPricing.length > 0) {
       const prices = product.tierPricing.map(t => t.price);
       const minPrice = Math.min(...prices);
@@ -68,6 +95,8 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!canAddToCart) return;
+    
     addToCart(product, product.sizes?.[0] || 'Free Size', product.isWholesale ? (product.minimumOrderQuantity || 1) : 1);
     
     // Trigger small bounce animation on the button
@@ -85,7 +114,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <div className="product-card-premium group bg-white dark:bg-darkCard rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-darkBorder cursor-pointer relative h-full flex flex-col">
+    <div className="product-card-premium group bg-white dark:bg-darkCard rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-darkBorder cursor-pointer relative h-full flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-darkBg">
         <Link to={`/product/${product.id}`}>
           <ImageWithLoader 
@@ -141,13 +170,24 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
               </span>
             </div>
             
-            <button 
-              onClick={handleAddToCart}
-              className="btn-navy-gold flex items-center gap-1.5 bg-primary hover:bg-[#06152a] text-white text-[10px] md:text-xs font-medium px-3 py-1.5 rounded-full transition shadow-sm"
-              title="Add to Cart"
-            >
-              <ShoppingCart size={12} className="group-hover/btn:text-accent transition-colors" /> {t('add')}
-            </button>
+            <div className="flex items-center gap-1.5 border border-gray-100 dark:border-darkBorder rounded-full p-1 bg-gray-50 dark:bg-darkBg">
+              <Link
+                to={`/trial-room?product=${product.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-800/60 text-blue-700 dark:text-blue-300 w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                title="AI Try On"
+              >
+                 <Sparkles size={12} />
+              </Link>
+              <button 
+                onClick={handleAddToCart}
+                disabled={!canAddToCart}
+                className={`flex items-center justify-center w-7 h-7 rounded-full transition shadow-sm ${!canAddToCart ? 'bg-gray-400 text-white cursor-not-allowed opacity-50' : 'bg-primary hover:bg-[#06152a] text-accent'}`}
+                title={!canAddToCart ? "Wholesale access required" : "Add to Cart"}
+              >
+                <ShoppingCart size={12} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -170,11 +210,11 @@ export const RatingStars: React.FC<{ rating: number, size?: number }> = ({ ratin
 };
 
 export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'ghost' }> = ({ children, className, variant = 'primary', ...props }) => {
-  const baseStyle = "px-4 py-2 rounded-lg font-medium transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyle = "px-4 py-2 rounded-lg font-medium transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 hover:shadow-md";
   const variants = {
     primary: "btn-navy-gold bg-primary text-white hover:bg-[#06152a] dark:bg-white dark:text-darkBg dark:hover:bg-gray-200 shadow-sm",
     outline: "btn-navy-gold border-2 border-primary text-primary dark:border-accent dark:text-accent hover:bg-blue-50 dark:hover:bg-white/5",
-    ghost: "btn-navy-gold bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary dark:hover:text-accent"
+    ghost: "btn-navy-gold bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary dark:hover:text-accent border border-transparent hover:border-gray-200 dark:hover:border-white/10"
   };
 
   return (
@@ -189,6 +229,25 @@ export const Toast: React.FC<{ message: string; type: 'success' | 'error' }> = (
     <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 bg-primary dark:bg-white dark:text-darkBg text-accent px-5 py-3 rounded-lg shadow-2xl transition-all duration-300 animate-[slideUp_0.3s_ease-out]">
       {type === 'success' ? <CheckCircle size={20} className="text-accent" /> : <XCircle size={20} className="text-red-400 dark:text-red-600" />}
       <span className="font-bold text-sm text-white">{message}</span>
+    </div>
+  );
+};
+
+export const ProductCardSkeleton: React.FC = () => {
+  return (
+    <div className="bg-white dark:bg-darkCard rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-darkBorder h-full flex flex-col animate-pulse">
+      <div className="relative aspect-square bg-gray-200 dark:bg-darkBg"></div>
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-1/2 mb-4"></div>
+        <div className="mt-auto">
+          <div className="h-5 bg-gray-200 dark:bg-gray-700/50 rounded w-1/3 mb-4"></div>
+          <div className="flex items-center justify-between">
+            <div className="h-3 bg-gray-200 dark:bg-gray-700/50 rounded w-1/4"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700/50 rounded-full w-20"></div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
