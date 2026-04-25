@@ -19,6 +19,7 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase-config";
 import { motion } from "motion/react";
@@ -138,7 +139,7 @@ export const Wholesale: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db!, "resellerApplications"), {
+      await setDoc(doc(db!, "resellerApplications", user.id), {
         userId: user.id,
         shopName: formData.shopName,
         description: formData.description,

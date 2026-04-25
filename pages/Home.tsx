@@ -271,32 +271,58 @@ const Home: React.FC = () => {
 
       {/* Recently Viewed */}
       {recentlyViewed.length > 0 && (
-        <div className="container mx-auto px-4 mt-12">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6" data-key="recentlyViewed">{t('recentlyViewed')}</h2>
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            variants={{
-              visible: { transition: { staggerChildren: 0.1 } },
-              hidden: {}
-            }}
-            className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
-          >
-            {recentlyViewed.map((product, index) => (
-              <motion.div 
-                key={product.id} 
-                variants={{
-                  hidden: { opacity: 0, scale: 0.9, y: 20 },
-                  visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 120 } }
-                }}
-                className="min-w-[200px] md:min-w-[260px] snap-start flex-none"
-              >
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+        <section className="py-16 md:py-24 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-darkCard/50 dark:to-darkBg/50 relative overflow-hidden">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[30rem] h-[30rem] bg-primary/5 dark:bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[20rem] h-[20rem] bg-accent/10 dark:bg-accent/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 border-b border-gray-200/60 dark:border-darkBorder/60 pb-6">
+              <div>
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="flex items-center gap-2 text-primary dark:text-accent font-bold text-sm tracking-widest uppercase mb-2"
+                >
+                  <RefreshCw size={16} />
+                  <span>Welcome Back</span>
+                </motion.div>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight" data-key="recentlyViewed">{t('recentlyViewed')}</h2>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm text-sm">
+                Pick up right where you left off. Here are the items you checked out recently.
+              </p>
+            </div>
+            
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{
+                visible: { transition: { staggerChildren: 0.1 } },
+                hidden: {}
+              }}
+              className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory pt-2 no-scrollbar px-2 -mx-2"
+            >
+              {recentlyViewed.map((product, index) => (
+                <motion.div 
+                  key={product.id} 
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.8 },
+                    visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+                  }}
+                  className="min-w-[240px] md:min-w-[280px] snap-start flex-none relative group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent dark:from-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -m-2 blur-xl z-0"></div>
+                  <div className="relative z-10 w-full h-full">
+                    <ProductCard product={product} />
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
       )}
     </div>
   );

@@ -242,7 +242,7 @@ export const ProductDetails: React.FC = () => {
         "@type": "Offer",
         "url": typeof window !== 'undefined' ? window.location.href : '',
         "priceCurrency": "BDT",
-        "price": calculateAppliedPrice ? calculateAppliedPrice(product) : product.price,
+        "price": calculateAppliedPrice ? calculateAppliedPrice(product, 1) : product.price,
         "itemCondition": "https://schema.org/NewCondition",
         "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
       }
