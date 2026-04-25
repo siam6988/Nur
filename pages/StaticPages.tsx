@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, getDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase-config';
-import { BlogPost } from '../types';
-import { Mail, Phone, MapPin, DollarSign, Users, Gift, ShieldCheck, Target, Truck, Clock, Map, Lock, FileText, AlertCircle, ShoppingBag, Star, Heart, ArrowRight, Loader2, UserPlus, Link as LinkIcon } from 'lucide-react';
+import { BlogPost, BlogComment } from '../types';
+import { Mail, Phone, MapPin, DollarSign, Users, Gift, ShieldCheck, Target, Truck, Clock, Map, Lock, FileText, AlertCircle, ShoppingBag, Star, Heart, ArrowRight, Loader2, UserPlus, Link as LinkIcon, ArrowLeft, ThumbsUp, MessageSquare, Send } from 'lucide-react';
 import { Button } from '../components/UIComponents';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
+import { useSEO } from '../hooks/useSEO';
+import { useStore } from '../context/StoreContext';
 
 export const About: React.FC = () => {
+  useSEO({ 
+    title: 'আমাদের গল্প (About Us)', 
+    description: 'NUR - বাংলাদেশের একটি প্রিমিয়াম লাইফস্টাইল ই-কমার্স প্ল্যাটফর্ম। আমাদের লক্ষ্য এবং গল্প জানুন। Premium retail and wholesale clothing.' 
+  });
+
   return (
     <div className="container mx-auto px-4 py-20">
       <motion.div 
@@ -102,6 +110,11 @@ export const About: React.FC = () => {
 };
 
 export const Contact: React.FC = () => {
+  useSEO({ 
+    title: 'যোগাযোগ (Contact Us)', 
+    description: 'NUR এর সাথে যোগাযোগ করুন। আমাদের কাস্টমার সাপোর্ট টিম সবসময় আপনার পাশে আছে। ইমেইল, ফোন এবং ঠিকানার বিস্তারিত। Contact the NUR support team.' 
+  });
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -160,6 +173,11 @@ export const Contact: React.FC = () => {
 };
 
 export const Policy: React.FC = () => {
+  useSEO({ 
+    title: 'আমাদের পলিসি (Privacy & Refund)', 
+    description: 'NUR এর প্রাইভেসি পলিসি, রিফান্ড পলিসি এবং রিটার্ন নিয়মাবলী সম্পর্কে বিস্তারিত জানুন। Privacy standards and reliable return policies.' 
+  });
+
   const [activeTab, setActiveTab] = useState<'privacy' | 'refund'>('privacy');
 
   return (
@@ -337,6 +355,11 @@ export const Policy: React.FC = () => {
 };
 
 export const ShippingPolicy: React.FC = () => {
+  useSEO({ 
+    title: 'ডেলিভারি পলিসি (Shipping Policy)', 
+    description: 'NUR ই-কমার্স থেকে কীভাবে আপনার প্রোডাক্ট দ্রুত এবং নিরাপদে ডেলিভারি পাবেন, তার বিস্তারিত নিয়মকানুন। Our standard delivery times and charges.' 
+  });
+
   return (
     <div className="container mx-auto px-4 py-20">
       <motion.div 
@@ -415,6 +438,11 @@ export const ShippingPolicy: React.FC = () => {
 };
 
 export const Terms: React.FC = () => {
+  useSEO({ 
+    title: 'শর্তাবলী (Terms and Conditions)', 
+    description: 'NUR এর সাথে কেনাকাটা এবং প্ল্যাটফর্ম ব্যবহারের সকল শর্ত এবং নিয়মাবলী (Terms and Conditions)।' 
+  });
+
   return (
     <div className="container mx-auto px-4 py-20">
       <motion.div 
@@ -440,6 +468,11 @@ export const Terms: React.FC = () => {
 };
 
 export const Affiliate: React.FC = () => {
+  useSEO({ 
+    title: 'অ্যাফিলিয়েট প্রোগ্রাম (Affiliate)', 
+    description: 'NUR এর অ্যাফিলিয়েট প্রোগ্রামে যুক্ত হয়ে আয় করুন। আমাদের প্রিমিয়াম প্রোডাক্ট প্রোমোট করে প্রতিটি সেলে কমিশন বুঝে নিন।' 
+  });
+
   return (
     <div className="container mx-auto px-4 py-20">
       <div className="max-w-5xl mx-auto">
@@ -526,6 +559,11 @@ export const Affiliate: React.FC = () => {
 };
 
 export const Blogs: React.FC = () => {
+  useSEO({ 
+    title: 'ফ্যাশন ব্লগ এবং টিপস (Blogs)', 
+    description: 'NUR ফ্যাশন ব্লগ - পোশাক, স্টাইল, স্মার্ট শপিং গাইড, গ্রীষ্ম এবং শীতের সেরা ফ্যাশন ট্রেন্ড। Fashion tips, style guides and more.' 
+  });
+
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -535,11 +573,18 @@ export const Blogs: React.FC = () => {
         const q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         const fetchedBlogs: BlogPost[] = [];
+        const partialMocks: Record<string, any> = {};
+        
         querySnapshot.forEach((doc) => {
-          fetchedBlogs.push({ id: doc.id, ...doc.data() } as BlogPost);
+          const data = doc.data();
+          if (data.title) {
+            fetchedBlogs.push({ id: doc.id, ...data } as BlogPost);
+          } else {
+            partialMocks[doc.id] = data;
+          }
         });
         
-        // If there are no blogs in Firestore, fallback to mock data temporarily for the preview
+        // If there are no full blogs in Firestore, fallback to mock data temporarily for the preview
         if (fetchedBlogs.length === 0) {
           setBlogs([
             {
@@ -550,7 +595,8 @@ export const Blogs: React.FC = () => {
               image: "https://picsum.photos/seed/shopping/800/500",
               excerpt: "অনলাইনে কেনাকাটা করার আগে কোন বিষয়গুলো খেয়াল রাখবেন? কীভাবে সেরা ডিল খুঁজে পাবেন? জেনে নিন আমাদের স্মার্ট শপিং গাইড থেকে।",
               content: "",
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
+              ...partialMocks["1"]
             },
             {
               id: "2",
@@ -560,7 +606,8 @@ export const Blogs: React.FC = () => {
               image: "https://picsum.photos/seed/quality/800/500",
               excerpt: "নকল প্রোডাক্ট চেনা অনেক সময়ই কঠিন হয়ে যায়। তবে কিছু সাধারণ কৌশল জানা থাকলে আপনি খুব সহজেই আসল প্রোডাক্ট বাছাই করতে পারবেন।",
               content: "",
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
+              ...partialMocks["2"]
             },
             {
               id: "3",
@@ -570,7 +617,8 @@ export const Blogs: React.FC = () => {
               image: "https://picsum.photos/seed/fashion/800/500",
               excerpt: "এই গ্রীষ্মে কোন ধরনের পোশাক পরলে আরাম পাবেন এবং একই সাথে স্টাইলিশ দেখতে পারবেন? জেনে নিন আমাদের ফ্যাশন এক্সপার্টদের পরামর্শ।",
               content: "",
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
+              ...partialMocks["3"]
             }
           ]);
         } else {
@@ -645,14 +693,351 @@ export const Blogs: React.FC = () => {
                  <p className="text-gray-600 dark:text-gray-400 mb-6 line-clamp-3 leading-relaxed">
                    {blog.excerpt}
                  </p>
-                 <button className="flex items-center gap-2 text-primary dark:text-accent font-bold hover:gap-4 transition-all uppercase text-sm tracking-wider">
+                 <Link to={`/blogs/${blog.id}`} className="flex items-center gap-2 text-primary dark:text-accent font-bold hover:gap-4 transition-all uppercase text-sm tracking-wider">
                    আরও পড়ুন <ArrowRight size={18} />
-                 </button>
+                 </Link>
                </div>
             </motion.article>
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+export const BlogDetails: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const { user, showToast } = useStore();
+  const [blog, setBlog] = useState<BlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [userRating, setUserRating] = useState(0);
+
+  useSEO({ 
+    title: blog ? blog.title : 'Blog Details', 
+    description: blog ? blog.excerpt : 'Read full blog details at NUR.',
+    image: blog ? blog.image : undefined,
+    url: typeof window !== 'undefined' ? window.location.href : '',
+    type: 'article',
+    schema: blog ? {
+      "@context": "https://schema.org/",
+      "@type": "Article",
+      "headline": blog.title,
+      "image": [
+        blog.image
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "NUR"
+      },
+      "datePublished": blog.createdAt,
+      "description": blog.excerpt
+    } : undefined
+  });
+
+  useEffect(() => {
+    const fetchBlog = async () => {
+      if (!id) return;
+      
+      const mockBlogs = [
+        {
+          id: "1",
+          title: "স্মার্ট শপিং এর ১০টি কার্যকরী টিপস",
+          category: "Shopping",
+          date: "May 10, 2024",
+          image: "https://picsum.photos/seed/shopping/800/500",
+          excerpt: "অনলাইনে কেনাকাটা করার আগে কোন বিষয়গুলো খেয়াল রাখবেন? কীভাবে সেরা ডিল খুঁজে পাবেন? জেনে নিন আমাদের স্মার্ট শপিং গাইড থেকে।",
+          content: "This is a detailed article about smart shopping...",
+          createdAt: new Date().toISOString(),
+          likes: 5,
+          likedBy: [],
+          comments: [],
+          ratings: [],
+          averageRating: 0
+        },
+        {
+          id: "2",
+          title: "কীভাবে আসল প্রোডাক্ট চিনবেন?",
+          category: "Guide",
+          date: "May 12, 2024",
+          image: "https://picsum.photos/seed/quality/800/500",
+          excerpt: "নকল প্রোডাক্ট চেনা অনেক সময়ই কঠিন হয়ে যায়। তবে কিছু সাধারণ কৌশল জানা থাকলে আপনি খুব সহজেই আসল প্রোডাক্ট বাছাই করতে পারবেন।",
+          content: "This is a detailed article about how to identify authentic products...",
+          createdAt: new Date().toISOString(),
+          likes: 2,
+          likedBy: [],
+          comments: [],
+          ratings: [],
+          averageRating: 0
+        },
+        {
+          id: "3",
+          title: "গ্রীষ্মের সেরা ফ্যাশন ট্রেন্ড",
+          category: "Fashion",
+          date: "May 15, 2024",
+          image: "https://picsum.photos/seed/fashion/800/500",
+          excerpt: "এই গ্রীষ্মে কোন ধরনের পোশাক পরলে আরাম পাবেন এবং একই সাথে স্টাইলিশ দেখতে পারবেন? জেনে নিন আমাদের ফ্যাশন এক্সপার্টদের পরামর্শ।",
+          content: "This is a detailed article about summer fashion...",
+          createdAt: new Date().toISOString(),
+          likes: 12,
+          likedBy: [],
+          comments: [],
+          ratings: [],
+          averageRating: 0
+        }
+      ];
+
+      const loadMock = (mergedData: any = {}) => {
+        const mockBlog = mockBlogs.find(b => b.id === id);
+        if (mockBlog) setBlog({ ...mockBlog, ...mergedData } as BlogPost);
+      };
+
+      try {
+        const docRef = doc(db, 'blogs', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (!data.title) {
+            loadMock(data);
+          } else {
+            setBlog({ id: docSnap.id, ...data } as BlogPost);
+          }
+        } else {
+          loadMock();
+        }
+      } catch (error) {
+        console.error("Error fetching blog:", error);
+        loadMock();
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlog();
+  }, [id]);
+
+  const handleLike = async () => {
+    if (!user) return showToast("দয়া করে লাইক করতে লগইন করুন", "error");
+    if (!blog || !id) return;
+
+    const liked = blog.likedBy?.includes(user.id);
+    const newLikedBy = liked 
+      ? (blog.likedBy || []).filter(uid => uid !== user.id)
+      : [...(blog.likedBy || []), user.id];
+      
+    const newLikes = liked ? Math.max(0, (blog.likes || 1) - 1) : (blog.likes || 0) + 1;
+
+    // Optimistic UI update
+    setBlog({ ...blog, likes: newLikes, likedBy: newLikedBy });
+
+    try {
+      await setDoc(doc(db, 'blogs', id), {
+        likes: newLikes,
+        likedBy: newLikedBy
+      }, { merge: true });
+    } catch (e) {
+      console.error(e);
+      // Revert if error occurs, ignoring offline errors intentionally for smooth UI
+    }
+  };
+
+  const handleRating = async (rating: number) => {
+    if (!user) return showToast("দয়া করে রেটিং দিতে লগইন করুন", "error");
+    if (!blog || !id) return;
+
+    setUserRating(rating);
+    const existingRatings = blog.ratings || [];
+    const otherRatings = existingRatings.filter(r => r.userId !== user.id);
+    const newRatings = [...otherRatings, { userId: user.id, rating }];
+    
+    const avgRating = newRatings.reduce((acc, curr) => acc + curr.rating, 0) / newRatings.length;
+
+    setBlog({ ...blog, ratings: newRatings, averageRating: avgRating });
+
+    try {
+      await setDoc(doc(db, 'blogs', id), {
+        ratings: newRatings,
+        averageRating: avgRating
+      }, { merge: true });
+      showToast("রেটিং যুক্ত হয়েছে!", "success");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return showToast("দয়া করে কমেন্ট করতে লগইন করুন", "error");
+    if (!blog || !id || !commentText.trim()) return;
+
+    const newComment: BlogComment = {
+      id: Date.now().toString(),
+      userId: user.id,
+      userName: user.name || 'Anonymous User',
+      text: commentText.trim(),
+      date: new Date().toISOString() // Or specific format
+    };
+
+    const newComments = [...(blog.comments || []), newComment];
+    setBlog({ ...blog, comments: newComments });
+    setCommentText('');
+
+    try {
+      await setDoc(doc(db, 'blogs', id), {
+        comments: newComments
+      }, { merge: true });
+      showToast("কমেন্ট যুক্ত হয়েছে!", "success");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center flex-col items-center py-32 space-y-4">
+        <Loader2 size={48} className="animate-spin text-primary dark:text-accent" />
+        <p className="text-gray-500 animate-pulse">লোড হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  if (!blog) {
+    return (
+      <div className="container mx-auto px-4 py-32 text-center">
+        <h1 className="text-3xl tracking-tight font-extrabold text-gray-900 dark:text-white mb-4">Article Not Found</h1>
+        <p className="text-gray-500 mb-8 max-w-lg mx-auto">We're sorry, we couldn't find the blog post you were looking for. It might have been removed or the URL may be incorrect.</p>
+        <Link to="/blogs" className="text-primary font-medium hover:underline inline-flex items-center gap-2"><ArrowLeft size={16} /> Back to Blogs</Link>
+      </div>
+    );
+  }
+
+  const hasLiked = user ? blog.likedBy?.includes(user.id) : false;
+  const currUserRating = user ? blog.ratings?.find(r => r.userId === user.id)?.rating || userRating : 0;
+
+  return (
+    <div className="bg-gray-50 dark:bg-darkBg py-16 md:py-24">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <Link to="/blogs" className="inline-flex items-center gap-2 text-primary dark:text-accent hover:underline font-medium mb-8">
+          <ArrowLeft size={18} /> Back to Blogs
+        </Link>
+        <article className="bg-white dark:bg-darkCard rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-darkBorder">
+          <div className="relative h-64 md:h-96 w-full">
+            <img 
+              src={blog.image} 
+              alt={blog.title} 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white w-full">
+              <span className="bg-accent text-white px-3 py-1 rounded-full text-xs font-bold shadow-md inline-block mb-4">
+                {blog.category}
+              </span>
+              <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight drop-shadow-md">
+                {blog.title}
+              </h1>
+              <div className="flex items-center gap-4 text-sm font-medium text-gray-200 flex-wrap">
+                <span>{blog.date}</span>
+                {blog.createdAt && (
+                   <>
+                     <span>•</span>
+                     <span>{new Date(blog.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric'})}</span>
+                   </>
+                )}
+                {blog.averageRating! > 0 && (
+                   <span className="flex items-center gap-1 text-yellow-400">
+                     • <Star size={14} className="fill-yellow-400" /> {blog.averageRating?.toFixed(1)}
+                   </span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-6 md:p-12">
+            <div className="prose prose-lg prose-blue dark:prose-invert max-w-none markdown-body text-gray-800 dark:text-gray-200 mb-12">
+              <Markdown>{blog.content || ''}</Markdown>
+            </div>
+
+            {/* Interaction Section */}
+            <div className="border-t dark:border-darkBorder pt-8 mt-12">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+                <button 
+                  onClick={handleLike}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
+                    hasLiked 
+                     ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' 
+                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-darkBg dark:text-gray-300 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <ThumbsUp size={20} className={hasLiked ? "fill-blue-600 dark:fill-blue-400" : ""} />
+                  {hasLiked ? 'Liked' : 'Like'} ({blog.likes || 0})
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2">Rate this article:</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button 
+                      key={star} 
+                      onClick={() => handleRating(star)}
+                      className="focus:outline-none transition-transform hover:scale-110"
+                    >
+                      <Star 
+                        size={24} 
+                        className={`${
+                          star <= currUserRating 
+                           ? 'text-yellow-400 fill-yellow-400' 
+                           : 'text-gray-300 dark:text-gray-600'
+                        }`} 
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="mt-12">
+                <h3 className="text-2xl font-bold dark:text-white mb-6 flex items-center gap-2">
+                  <MessageSquare size={24} /> Comments ({(blog.comments || []).length})
+                </h3>
+
+                <form onSubmit={handleComment} className="mb-10 flex gap-3 relative">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="flex-1 bg-gray-50 dark:bg-darkBg/50 border dark:border-darkBorder dark:text-white rounded-xl py-4 px-5 pr-14 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!commentText.trim()}
+                    className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-blue-700 text-white p-2 w-12 rounded-lg flex items-center justify-center disabled:opacity-50 transition-all"
+                  >
+                    <Send size={18} />
+                  </button>
+                </form>
+
+                <div className="space-y-6">
+                  {(!blog.comments || blog.comments.length === 0) ? (
+                    <p className="text-gray-500 italic text-center py-6">No comments yet. Be the first to comment!</p>
+                  ) : (
+                    blog.comments.map((comment) => (
+                      <div key={comment.id} className="bg-gray-50 dark:bg-darkBg p-5 rounded-2xl">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-gray-900 dark:text-white">{comment.userName}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(comment.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300">{comment.text}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
     </div>
   );
 };

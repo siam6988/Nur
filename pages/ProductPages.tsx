@@ -6,9 +6,17 @@ import { CATEGORIES } from '../constants';
 import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package } from 'lucide-react';
 import { Product, OrderStatus } from '../types';
 import { motion } from 'motion/react';
+import { useSEO } from '../hooks/useSEO';
 
 // --- Shop Page ---
 export const Shop: React.FC = () => {
+  useSEO({
+    title: 'Shop All Products',
+    description: 'Browse our complete collection of premium lifestyle and fashion products at NUR. Best prices and regular discounts.',
+    keywords: 'NUR shop, buy clothes, premium fashion BD, online shopping',
+    url: 'https://nur-eight.vercel.app/shop'
+  });
+
   const { products, isLoading, t } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -212,6 +220,35 @@ export const ProductDetails: React.FC = () => {
   const navigate = useNavigate();
   const { products, addToCart, toggleWishlist, wishlist, addReview, user, orders, isLoading, t, language, addToRecentlyViewed, formatPrice, calculateAppliedPrice } = useStore();
   const product = products.find(p => p.id === id);
+  
+  useSEO({
+    title: product ? product.name : 'Product Details',
+    description: product ? product.description.substring(0, 160) : 'View product details at NUR',
+    image: product ? product.images[0] : undefined,
+    url: typeof window !== 'undefined' ? window.location.href : '',
+    keywords: product ? `${product.name}, buy ${product.name} BD, ${product.category}` : '',
+    schema: product ? {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": product.images,
+      "description": product.description,
+      "brand": {
+        "@type": "Brand",
+        "name": "NUR"
+      },
+      "sku": product.id,
+      "offers": {
+        "@type": "Offer",
+        "url": typeof window !== 'undefined' ? window.location.href : '',
+        "priceCurrency": "BDT",
+        "price": calculateAppliedPrice ? calculateAppliedPrice(product) : product.price,
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      }
+    } : undefined
+  });
+
   const [selectedSize, setSelectedSize] = useState<string>(product?.sizes[0] || '');
   const [mainImage, setMainImage] = useState(product?.images[0] || '');
   const [reviewText, setReviewText] = useState('');

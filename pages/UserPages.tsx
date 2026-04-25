@@ -2,15 +2,35 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Button, ProductCard, Card, LoadingSpinner, AvatarRenderer } from '../components/UIComponents';
 import { Minus, Plus, Trash2, MapPin, Phone, CreditCard, ShoppingBag, Package, Heart, Wallet, Moon, Sun, Edit, Save, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { DELIVERY_CHARGE_INSIDE, DELIVERY_CHARGE_OUTSIDE } from '../constants';
 import { PaymentMethod, OrderStatus } from '../types';
 import { motion } from 'motion/react';
 import { ImageUpload } from '../components/ImageUpload';
+import { useSEO } from '../hooks/useSEO';
 
 // --- Cart Page ---
 export const Cart: React.FC = () => {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, t, language, formatPrice } = useStore();
+  useSEO({
+    title: 'Your Shopping Cart',
+    description: 'View and manage your shopping cart at NUR. Checkout easily and securely.',
+  });
+
+  const { cart, updateCartQuantity, removeFromCart, cartTotal, t, language, formatPrice, validateCoupon, showToast, user } = useStore();
+  const [couponCode, setCouponCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    const discount = await validateCoupon(couponCode, cartTotal);
+    if (discount > 0) {
+      setDiscountAmount(discount);
+      showToast(`Coupon applied! You saved ${formatPrice(discount)}`, 'success');
+    } else {
+      setDiscountAmount(0);
+      showToast('Invalid or expired coupon', 'error');
+    }
+  };
   
   if (cart.length === 0) {
     return (
@@ -101,7 +121,7 @@ export const Cart: React.FC = () => {
         <div className="w-full lg:w-80 h-fit sticky top-24">
           <Card>
             <h3 className="font-bold text-lg mb-4" data-key="orderSummary">{t('orderSummary')}</h3>
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4 border-b dark:border-darkBorder pb-4">
+            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400 mb-4 border-b dark:border-darkBorder pb-4">
               <div className="flex justify-between">
                 <span data-key="subtotal">{t('subtotal')}</span>
                 <span>{formatPrice(cartTotal)}</span>
@@ -110,12 +130,33 @@ export const Cart: React.FC = () => {
                 <span data-key="deliveryCharge">{t('deliveryCharge')}</span>
                 <span>{cartTotal > 5000 ? t('free') : `${formatPrice(DELIVERY_CHARGE_INSIDE)} - ${formatPrice(DELIVERY_CHARGE_OUTSIDE)}`}</span>
               </div>
+              
+              {/* Coupon Section */}
+              <div className="pt-2 pb-2">
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Coupon Code" 
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-1 border dark:border-darkBorder dark:bg-darkBg dark:text-white rounded p-2 text-sm"
+                  />
+                  <Button type="button" onClick={handleApplyCoupon} className="px-3 py-2 text-sm">Apply</Button>
+                </div>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
+                  <span>Discount</span>
+                  <span>-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
             </div>
+            
             <div className="flex justify-between font-bold text-lg text-gray-800 dark:text-white mb-6">
               <span data-key="totalEstimated">{t('totalEstimated')}</span>
-              <span>{formatPrice(cartTotal)} + Delivery</span>
+              <span>{formatPrice(Math.max(0, cartTotal - discountAmount))} + Delivery</span>
             </div>
-            <Link to="/checkout" className="block">
+            <Link to="/checkout" state={{ initialCouponCode: couponCode, initialDiscountAmount: discountAmount }} className="block">
               <Button className="w-full" data-key="checkout">{t('checkout')}</Button>
             </Link>
           </Card>
@@ -127,8 +168,16 @@ export const Cart: React.FC = () => {
 
 // --- Checkout Page ---
 export const Checkout: React.FC = () => {
+  useSEO({
+    title: 'Checkout',
+    description: 'Secure checkout page for NUR e-commerce. Complete your order with fast delivery.',
+  });
+
   const { cart, user, cartTotal, placeOrder, t, language, validateCoupon, showToast, formatPrice } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { initialCouponCode = '', initialDiscountAmount = 0 } = location.state || {};
+
   const [formData, setFormData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -140,8 +189,8 @@ export const Checkout: React.FC = () => {
   const [loading, setLoading] = useState(false);
   
   // Coupon & Points State
-  const [couponCode, setCouponCode] = useState('');
-  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponCode, setCouponCode] = useState(initialCouponCode);
+  const [discountAmount, setDiscountAmount] = useState(initialDiscountAmount);
   const [usePoints, setUsePoints] = useState(false);
   const [pointsDiscount, setPointsDiscount] = useState(0);
 
@@ -341,6 +390,11 @@ export const Checkout: React.FC = () => {
 
 // --- Wishlist Page ---
 export const Wishlist: React.FC = () => {
+  useSEO({
+    title: 'Your Wishlist',
+    description: 'View your favorite products saved for later at NUR.',
+  });
+
   const { wishlist, t, language } = useStore();
   if (wishlist.length === 0) {
     return (
@@ -386,6 +440,11 @@ export const Wishlist: React.FC = () => {
 
 // --- Profile Page ---
 export const Profile: React.FC = () => {
+  useSEO({
+    title: 'My Profile',
+    description: 'Manage your NUR profile, view orders, and track deliveries.',
+  });
+
   const { user, orders, logout, cancelOrder, theme, setTheme, updateProfile, t, language, addReview, formatPrice } = useStore();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -618,6 +677,11 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithP
 
 // --- Login Page ---
 export const Login: React.FC = () => {
+  useSEO({
+    title: 'Login or Register',
+    description: 'Sign in to NUR to access your account, orders, and premium shopping features.',
+  });
+
   const { t, showToast } = useStore();
   const navigate = useNavigate();
   const [isLoginView, setIsLoginView] = useState(true);

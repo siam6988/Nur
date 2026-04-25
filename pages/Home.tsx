@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { motion, useScroll, useTransform } from 'motion/react';
+import { useSEO } from '../hooks/useSEO';
 
 const CountdownTimer = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -48,6 +49,13 @@ const CountdownTimer = () => {
 };
 
 const Home: React.FC = () => {
+  useSEO({
+    title: 'Home',
+    description: 'NUR - Best Online Shopping Website in Bangladesh. Buy electronics, fashion, and home products at the best price with fast delivery.',
+    keywords: 'online shopping Bangladesh, buy electronics BD, NUR shop, cheap products BD',
+    url: 'https://nur-eight.vercel.app/'
+  });
+
   const { products, isLoading, t, recentlyViewed, categories, language, banners } = useStore();
   const [currentBanner, setCurrentBanner] = useState(0);
 

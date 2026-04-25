@@ -125,6 +125,14 @@ export interface Banner {
   link: string;
 }
 
+export interface BlogComment {
+  id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  date: string;
+}
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -135,4 +143,9 @@ export interface BlogPost {
   content: string;
   createdAt: string;
   isActive?: boolean;
+  likes?: number;
+  likedBy?: string[];
+  comments?: BlogComment[];
+  ratings?: { userId: string, rating: number }[];
+  averageRating?: number;
 }

@@ -5,8 +5,14 @@ import { Camera, Upload, Sparkles, User, Ruler, Weight, Globe, Calendar, Refresh
 import { useStore } from '../context/StoreContext';
 import { Button, LoadingSpinner, ProductCard } from '../components/UIComponents';
 import { Product } from '../types';
+import { useSEO } from '../hooks/useSEO';
 
 export const TrialRoom: React.FC = () => {
+  useSEO({
+    title: 'AI Virtual Trial Room',
+    description: 'Try on clothes virtually using our AI-powered Trial Room feature. See how it looks before you buy!',
+  });
+
   const { products, formatPrice, t, language, showToast } = useStore();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

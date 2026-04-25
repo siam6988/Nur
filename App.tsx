@@ -11,7 +11,8 @@ import { Shop, ProductDetails } from './pages/ProductPages';
 import { Wholesale } from './pages/Wholesale';
 import { TrialRoom } from './pages/TrialRoom';
 import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
-import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy, Blogs } from './pages/StaticPages';
+import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy, Blogs, BlogDetails } from './pages/StaticPages';
+import { BlogAdmin } from './pages/AdminPages';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -110,11 +111,15 @@ const AnimatedRoutes = () => {
         {/* Static Pages */}
         <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
         <Route path="/blogs" element={<PageWrapper><Blogs /></PageWrapper>} />
+        <Route path="/blogs/:id" element={<PageWrapper><BlogDetails /></PageWrapper>} />
         <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
         <Route path="/policy" element={<PageWrapper><Policy /></PageWrapper>} />
         <Route path="/terms" element={<PageWrapper><Terms /></PageWrapper>} />
         <Route path="/shipping" element={<PageWrapper><ShippingPolicy /></PageWrapper>} />
         <Route path="/affiliate" element={<PageWrapper><Affiliate /></PageWrapper>} />
+
+        {/* Admin Pages */}
+        <Route path="/admin/blogs" element={<PageWrapper><BlogAdmin /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
   );

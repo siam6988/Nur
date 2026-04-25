@@ -22,8 +22,14 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase-config";
 import { motion } from "motion/react";
+import { useSEO } from "../hooks/useSEO";
 
 export const Wholesale: React.FC = () => {
+  useSEO({
+    title: 'Wholesale Application',
+    description: 'Apply for a reseller account at NUR to access wholesale prices and bulk ordering discounts.',
+  });
+
   const { products, isLoading, t, language, user, showToast } = useStore();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,31 +78,15 @@ export const Wholesale: React.FC = () => {
 
     setUploadingImg(true);
     try {
-      // 1. Resize/Compress image using canvas
+      // Resize/Compress image using canvas
       const base64Data = await resizeAndConvertImage(file);
-      const pureBase64 = base64Data.split(",")[1];
-
-      // 2. Upload to ImgBB
-      const formDataToSend = new FormData();
-      formDataToSend.append("image", pureBase64);
       
-      const apiKey = import.meta.env.VITE_IMGBB_API_KEY || "fe89849202737604fd6885ab988cace3"; // Fallback to public test key or fallback 
-
-      const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: "POST",
-        body: formDataToSend,
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setFormData({ ...formData, visitingCardImage: data.data.url });
-        showToast("Image uploaded successfully!", "success");
-      } else {
-        throw new Error("ImgBB Error");
-      }
+      // Since it's compressed to 800px max, we can safely store the Data URL locally.
+      setFormData({ ...formData, visitingCardImage: base64Data });
+      showToast("Image uploaded successfully!", "success");
     } catch (error) {
       console.error(error);
-      showToast("Failed to upload image.", "error");
+      showToast("Failed to process image.", "error");
     } finally {
       setUploadingImg(false);
     }
