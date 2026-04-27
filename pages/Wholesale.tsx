@@ -112,14 +112,14 @@ export const Wholesale: React.FC = () => {
     if (sortBy === "price-low") {
       result.sort(
         (a, b) =>
-          a.price * (1 - a.discountPercentage / 100) -
-          b.price * (1 - b.discountPercentage / 100),
+          a.price * (1 - (a.discountPercentage || 0) / 100) -
+          b.price * (1 - (b.discountPercentage || 0) / 100),
       );
     } else if (sortBy === "price-high") {
       result.sort(
         (a, b) =>
-          b.price * (1 - b.discountPercentage / 100) -
-          a.price * (1 - a.discountPercentage / 100),
+          b.price * (1 - (b.discountPercentage || 0) / 100) -
+          a.price * (1 - (a.discountPercentage || 0) / 100),
       );
     } else if (sortBy === "rating") {
       result.sort((a, b) => b.rating - a.rating);
@@ -141,6 +141,8 @@ export const Wholesale: React.FC = () => {
     try {
       await setDoc(doc(db!, "resellerApplications", user.id), {
         userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
         shopName: formData.shopName,
         description: formData.description,
         phone: formData.phone,

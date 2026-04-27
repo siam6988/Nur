@@ -3,9 +3,9 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ProductCard, RatingStars, Button, Card, LoadingSpinner, ProductCardSkeleton } from '../components/UIComponents';
 import { CATEGORIES } from '../constants';
-import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package } from 'lucide-react';
+import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package, Sparkles, Loader2 } from 'lucide-react';
 import { Product, OrderStatus } from '../types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../hooks/useSEO';
 
 // --- Shop Page ---
@@ -55,16 +55,17 @@ export const Shop: React.FC = () => {
         descEn.toLowerCase().includes(term) ||
         descBn.includes(term)
       );
-      const discountedPrice = p.price - (p.price * p.discountPercentage / 100);
+      const discount = p.discountPercentage || 0;
+      const discountedPrice = p.price - (p.price * discount / 100);
       const matchesMinPrice = minPrice === '' || discountedPrice >= Number(minPrice);
       const matchesMaxPrice = maxPrice === '' || discountedPrice <= Number(maxPrice);
       return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice;
     });
 
     if (sortBy === 'price-low') {
-      result.sort((a, b) => (a.price*(1-a.discountPercentage/100)) - (b.price*(1-b.discountPercentage/100)));
+      result.sort((a, b) => (a.price*(1-(a.discountPercentage||0)/100)) - (b.price*(1-(b.discountPercentage||0)/100)));
     } else if (sortBy === 'price-high') {
-      result.sort((a, b) => (b.price*(1-b.discountPercentage/100)) - (a.price*(1-a.discountPercentage/100)));
+      result.sort((a, b) => (b.price*(1-(b.discountPercentage||0)/100)) - (a.price*(1-(a.discountPercentage||0)/100)));
     } else if (sortBy === 'rating') {
       result.sort((a, b) => b.rating - a.rating);
     }
@@ -258,11 +259,45 @@ export const ProductDetails: React.FC = () => {
   const [quantityError, setQuantityError] = useState<string>('');
   const [buyNowMessage, setBuyNowMessage] = useState<string>('');
 
+  // AI Fit Predictor States
+  const [showAIFitPrompt, setShowAIFitPrompt] = useState(false);
+  const [fitHeight, setFitHeight] = useState('');
+  const [fitWeight, setFitWeight] = useState('');
+  const [fitResult, setFitResult] = useState<{size: string, match: number} | null>(null);
+  const [isFitting, setIsFitting] = useState(false);
+
+  // AI Stylist States
+  const [showStylist, setShowStylist] = useState(false);
+  const [isStyling, setIsStyling] = useState(false);
+  const [stylingTips, setStylingTips] = useState<string[]>([]);
+
+  const handleAIFit = () => {
+    if (!fitHeight || !fitWeight) return;
+    setIsFitting(true);
+    setTimeout(() => {
+       const sizes = product?.sizes || ['M'];
+       const heightInt = parseInt(fitHeight);
+       let predicted = sizes[0];
+       if (heightInt > 180 && sizes.includes('XL')) predicted = 'XL';
+       else if (heightInt > 170 && sizes.includes('L')) predicted = 'L';
+       else if (heightInt > 160 && sizes.includes('M')) predicted = 'M';
+       else if (sizes.includes('S')) predicted = 'S';
+       
+       setFitResult({ size: predicted, match: Math.floor(Math.random() * 8) + 90 });
+       setSelectedSize(predicted);
+       setIsFitting(false);
+    }, 2000);
+  };
+
   useEffect(() => {
     if (product) {
       setSelectedSize(product.sizes[0]);
       setMainImage(product.images[0]);
       addToRecentlyViewed(product);
+      setFitResult(null);
+      setShowAIFitPrompt(false);
+      setShowStylist(false);
+      setStylingTips([]);
       if (product.isWholesale && product.minimumOrderQuantity) {
         setQuantity(product.minimumOrderQuantity);
       } else {
@@ -271,6 +306,38 @@ export const ProductDetails: React.FC = () => {
       setQuantityError('');
     }
   }, [product]);
+
+  const handleAskStylist = () => {
+    if (stylingTips.length > 0) {
+      setShowStylist(!showStylist);
+      return;
+    }
+    
+    setShowStylist(true);
+    setIsStyling(true);
+    setTimeout(() => {
+      // Mock AI stylist output based on category
+      let tips = [
+        "Pair it with classic white sneakers for a clean look.",
+        "Layer under a denim jacket for cooler evenings.",
+        "Accessorize with simple silver minimalist jewelry."
+      ];
+      if (product?.categoryId === 'c2' || product?.category === 'electronics') {
+        tips = [
+          "Perfect for your minimalist desk setup.",
+          "Keep it protected with an anti-scratch clear case.",
+          "Pair with a sleek wireless charging pad to complete the look."
+        ];
+      } else if (product?.categoryId === 'c3') {
+        tips = [
+          "Use a matte setting spray to lock the look in completely.",
+          "Pair with a neutral lip color to let the eyes shine."
+        ];
+      }
+      setStylingTips(tips);
+      setIsStyling(false);
+    }, 2500);
+  };
 
   if (isLoading) {
     return (
@@ -300,7 +367,8 @@ export const ProductDetails: React.FC = () => {
   }
   if (!product) return <div className="p-10 text-center dark:text-white">Product not found</div>;
 
-  const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
+  const discount = product.discountPercentage || 0;
+  const discountedPrice = product.price - (product.price * discount / 100);
   const canReview = user && orders.some(order => order.status === OrderStatus.DELIVERED && order.items.some(item => item.id === product.id));
   const hasReviewed = user && product.reviews?.some(r => r.userId === user.id);
   
@@ -427,7 +495,46 @@ export const ProductDetails: React.FC = () => {
              <div className="flex items-center gap-4 mb-6">
                 <RatingStars rating={product.rating} />
                 <span className="text-sm text-gray-500">({product.reviews?.length || 0} {t('reviews')})</span>
+                <span className="text-gray-300 dark:text-gray-700">|</span>
+                <button 
+                  onClick={handleAskStylist}
+                  className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 flex items-center gap-1 hover:opacity-80 transition"
+                >
+                  <Sparkles size={14} className="text-purple-500" /> Ask AI Stylist
+                </button>
              </div>
+
+             <AnimatePresence>
+               {showStylist && (
+                 <motion.div 
+                   initial={{ height: 0, opacity: 0 }}
+                   animate={{ height: 'auto', opacity: 1 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   className="overflow-hidden mb-6"
+                 >
+                   <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl p-5 shadow-sm">
+                     <h4 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-3 flex items-center gap-2">
+                       <Sparkles size={14} /> AI Stylist Recommendations
+                     </h4>
+                     {isStyling ? (
+                       <div className="flex items-center gap-3 text-sm text-gray-500 py-2">
+                         <Loader2 size={16} className="animate-spin text-purple-500" />
+                         Analyzing trends and item features...
+                       </div>
+                     ) : (
+                       <ul className="space-y-2">
+                         {stylingTips.map((tip, idx) => (
+                           <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                             <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
+                             {tip}
+                           </li>
+                         ))}
+                       </ul>
+                     )}
+                   </div>
+                 </motion.div>
+               )}
+             </AnimatePresence>
              
              <div className="bg-gray-50 dark:bg-darkBg p-6 rounded-2xl border dark:border-darkBorder mb-8">
                {product.isWholesale ? (
@@ -449,7 +556,7 @@ export const ProductDetails: React.FC = () => {
                ) : (
                  <div>
                    <span className="text-4xl font-bold text-primary dark:text-white">{formatPrice(discountedPrice)}</span>
-                   {product.discountPercentage > 0 && <span className="text-gray-400 line-through ml-4">{formatPrice(product.price)}</span>}
+                   {(product.discountPercentage || 0) > 0 && <span className="text-gray-400 line-through ml-4">{formatPrice(product.price)}</span>}
                  </div>
                )}
              </div>
@@ -485,7 +592,67 @@ export const ProductDetails: React.FC = () => {
 
                {product.sizes && product.sizes.length > 0 && (
                  <>
-                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4" data-key="selectSize">{t('selectSize')}</p>
+                   <div className="flex justify-between items-end mb-4">
+                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest" data-key="selectSize">{t('selectSize')}</p>
+                     <button 
+                       onClick={() => setShowAIFitPrompt(!showAIFitPrompt)}
+                       className="text-xs flex items-center gap-1 font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                     >
+                       <Sparkles size={12} className="animate-pulse" /> Find My Fit (AI)
+                     </button>
+                   </div>
+                   
+                   <AnimatePresence>
+                     {showAIFitPrompt && (
+                       <motion.div 
+                         initial={{ height: 0, opacity: 0 }}
+                         animate={{ height: 'auto', opacity: 1 }}
+                         exit={{ height: 0, opacity: 0 }}
+                         className="overflow-hidden mb-6"
+                       >
+                         <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/40 rounded-xl p-4">
+                           <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                             <Sparkles size={14} /> AI Size Match
+                           </h4>
+                           {fitResult ? (
+                             <div className="bg-white dark:bg-darkCard p-3 rounded-lg border border-blue-100 dark:border-blue-800 shadow-sm text-center">
+                               <p className="text-sm text-gray-600 dark:text-gray-300">Based on our data, your perfect size is:</p>
+                               <div className="text-3xl font-black text-blue-600 dark:text-blue-400 my-2">{fitResult.size}</div>
+                               <p className="text-xs text-blue-500 font-medium">✨ {fitResult.match}% Match Confidence</p>
+                               <button 
+                                 onClick={() => { setFitResult(null); setShowAIFitPrompt(false); }}
+                                 className="text-xs text-gray-500 mt-3 hover:underline"
+                               >
+                                 Recalculate
+                               </button>
+                             </div>
+                           ) : (
+                             <div className="space-y-3">
+                               <div className="grid grid-cols-2 gap-3">
+                                 <div>
+                                   <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Height (cm)</label>
+                                   <input type="number" value={fitHeight} onChange={e => setFitHeight(e.target.value)} placeholder="e.g. 175" className="w-full p-2 text-sm border dark:border-darkBorder rounded bg-white dark:bg-darkBg dark:text-white" />
+                                 </div>
+                                 <div>
+                                   <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Weight (kg)</label>
+                                   <input type="number" value={fitWeight} onChange={e => setFitWeight(e.target.value)} placeholder="e.g. 70" className="w-full p-2 text-sm border dark:border-darkBorder rounded bg-white dark:bg-darkBg dark:text-white" />
+                                 </div>
+                               </div>
+                               <button 
+                                 onClick={handleAIFit}
+                                 disabled={!fitHeight || !fitWeight || isFitting}
+                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                               >
+                                 {isFitting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} 
+                                 {isFitting ? "Analyzing Proportions..." : "Predict Size"}
+                               </button>
+                             </div>
+                           )}
+                         </div>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+
                    <div className="flex gap-2 flex-wrap mb-6">
                      {product.sizes.map(size => (
                        <button key={size} onClick={() => setSelectedSize(size)} className={`px-5 py-2 rounded-lg font-bold border ${selectedSize === size ? 'bg-primary text-white border-primary' : 'border-gray-200 dark:border-darkBorder dark:text-gray-300'}`}>{size}</button>

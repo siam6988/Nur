@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CATEGORIES } from '../constants';
-import { ProductCard, LoadingSpinner } from '../components/UIComponents';
+import { ProductCard, ProductCardSkeleton, LoadingSpinner } from '../components/UIComponents';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Truck, ShieldCheck, RefreshCw, Headset, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
@@ -48,6 +48,47 @@ const CountdownTimer = () => {
   );
 };
 
+const SpecialOfferBanner = () => {
+  return (
+    <div className="container mx-auto px-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
+        className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 shadow-xl flex items-center min-h-[16rem]"
+      >
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative z-10 p-8 md:p-12 w-full md:w-2/3">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <span className="inline-block px-4 py-1.5 mb-4 text-xs font-bold tracking-widest text-indigo-900 uppercase bg-accent rounded-full shadow-sm">Limited Time</span>
+            <h3 className="mb-3 text-3xl font-extrabold text-white md:text-4xl tracking-tight">Special Offer</h3>
+            <p className="mb-6 text-base text-indigo-100 md:text-lg opacity-90 max-w-lg">Get up to 50% off on selected items! Elevate your style with our exclusive collection today.</p>
+            <Link to="/shop" className="inline-flex items-center justify-center px-6 py-3 text-sm font-bold text-indigo-700 transition-all bg-white rounded-full hover:bg-gray-50 hover:shadow-xl hover:-translate-y-0.5 group">
+              Shop Now
+              <ChevronRight size={18} className="ml-1 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+        </div>
+        {/* Abstract decorative elements */}
+        <div className="absolute top-0 right-0 w-1/2 h-full opacity-30 pointer-events-none hidden md:block">
+           <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="absolute top-0 right-0 w-full h-full transform translate-x-1/4 -translate-y-1/4 blur-2xl">
+             <path fill="currentColor" className="text-white" d="M47.7,-57.2C59.9,-43.3,66.9,-25.3,68.9,-7.2C70.9,10.9,67.9,29,57.1,42.7C46.3,56.4,27.7,65.6,8.7,69.5C-10.4,73.4,-29.9,72,-45.3,62.2C-60.8,52.4,-72.2,34.2,-75.6,14.8C-78.9,-4.6,-74.2,-25.1,-62.4,-40.4C-50.6,-55.8,-31.6,-66,-13.4,-67.2C4.7,-68.4,22.9,-60.7,47.7,-57.2Z" transform="translate(200 200) scale(1.1)" />
+           </svg>
+           <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 right-10 w-3/4 h-3/4 transform translate-y-1/4 blur-xl opacity-60">
+             <path fill="currentColor" className="text-white" d="M28.3,-44.6C36.8,-34.5,43.9,-24.5,47.4,-13.2C50.9,-1.9,50.8,10.8,45.8,21.8C40.8,32.8,30.9,42.1,19.3,46.5C7.7,50.9,-5.6,50.4,-18.2,46.3C-30.8,42.2,-42.7,34.5,-50.2,23.5C-57.7,12.5,-60.8,-1.8,-57.1,-14.2C-53.4,-26.6,-42.9,-37.1,-31.5,-46.3C-20.1,-55.5,-7.8,-63.4,1.8,-65.7C11.4,-68.1,23.3,-64.9,28.3,-44.6Z" transform="translate(200 200) scale(1.1)" />
+           </svg>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const Home: React.FC = () => {
   useSEO({
     title: 'Home',
@@ -74,7 +115,7 @@ const Home: React.FC = () => {
 
   const retailProducts = products.filter(p => !p.isWholesale);
   const featuredProducts = retailProducts.slice(0, 8);
-  const flashSaleProducts = retailProducts.filter(p => p.discountPercentage > 10).slice(0, 8);
+  const flashSaleProducts = retailProducts.filter(p => (p.discountPercentage || 0) > 10).slice(0, 8);
 
   return (
     <div className="space-y-12 pb-12">
@@ -155,6 +196,8 @@ const Home: React.FC = () => {
         </div>
       </div>
 
+      <SpecialOfferBanner />
+
       {/* Flash Sale */}
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-end mb-6">
@@ -179,18 +222,26 @@ const Home: React.FC = () => {
           }}
           className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
         >
-          {flashSaleProducts.map((product, index) => (
-            <motion.div 
-              key={product.id} 
-              variants={{
-                hidden: { opacity: 0, x: (index - 2) * -100, y: 20, rotate: (index - 2) * 5, scale: 0.8 },
-                visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 120, damping: 14 } }
-              }}
-              className="min-w-[240px] md:min-w-[280px] snap-start flex-none"
-            >
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="min-w-[240px] md:min-w-[280px] snap-start flex-none">
+                <ProductCardSkeleton />
+              </div>
+            ))
+          ) : (
+            flashSaleProducts.map((product, index) => (
+              <motion.div 
+                key={product.id} 
+                variants={{
+                  hidden: { opacity: 0, x: (index - 2) * -100, y: 20, rotate: (index - 2) * 5, scale: 0.8 },
+                  visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 120, damping: 14 } }
+                }}
+                className="min-w-[240px] md:min-w-[280px] snap-start flex-none"
+              >
+                <ProductCard product={product} />
+              </motion.div>
+            ))
+          )}
         </motion.div>
       </div>
 
@@ -254,18 +305,26 @@ const Home: React.FC = () => {
           }}
           className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar"
         >
-          {featuredProducts.map((product, index) => (
-            <motion.div 
-              key={product.id} 
-              variants={{
-                hidden: { opacity: 0, x: (index - 2) * -80, y: 30, rotate: (index - 2) * 6, scale: 0.9 },
-                visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 150, damping: 15 } }
-              }}
-              className="min-w-[200px] md:min-w-[260px] snap-start flex-none"
-            >
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
+           {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="min-w-[200px] md:min-w-[260px] snap-start flex-none">
+                <ProductCardSkeleton />
+              </div>
+            ))
+          ) : (
+            featuredProducts.map((product, index) => (
+              <motion.div 
+                key={product.id} 
+                variants={{
+                  hidden: { opacity: 0, x: (index - 2) * -80, y: 30, rotate: (index - 2) * 6, scale: 0.9 },
+                  visible: { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 150, damping: 15 } }
+                }}
+                className="min-w-[200px] md:min-w-[260px] snap-start flex-none"
+              >
+                <ProductCard product={product} />
+              </motion.div>
+            ))
+          )}
         </motion.div>
       </div>
 

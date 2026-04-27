@@ -8,7 +8,10 @@ export enum OrderStatus {
 
 export enum PaymentMethod {
   COD = 'Cash on Delivery',
-  SSL = 'Online Payment (SSLCommerz)'
+  SSL = 'Online Payment (SSLCommerz)',
+  BKASH = 'bKash',
+  NAGAD = 'Nagad',
+  ROCKET = 'Rocket'
 }
 
 export enum Currency {
@@ -116,6 +119,10 @@ export interface Order {
   shippingAddress: string;
   contactNumber: string;
   date: string;
+  transactionId?: string;
+  paymentPhone?: string;
+  pointsUsed?: number;
+  pointsEarned?: number;
 }
 
 export interface Banner {
@@ -131,6 +138,42 @@ export interface BlogComment {
   userName: string;
   text: string;
   date: string;
+}
+
+export interface SupportReply {
+  sender: 'user' | 'admin';
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id?: string;
+  subject: string;
+  message: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  status: string; // 'Pending', 'Open', 'Closed', etc.
+  createdAt: any;
+  replies?: SupportReply[];
+}
+
+export interface Notification {
+  id?: string;
+  title: string;
+  message: string;
+  date: string;
+  target: 'all' | 'customers' | string; // target could be user id
+  createdAt?: any;
+}
+
+export interface GeneralSettings {
+  storeName?: string;
+  supportPhone?: string;
+  supportEmail?: string;
+  address?: string;
+  facebookUrl?: string;
+  shippingPolicy?: string;
 }
 
 export interface BlogPost {

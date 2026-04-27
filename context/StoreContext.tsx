@@ -138,11 +138,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     if (!auth) return;
     let unsubUser: () => void;
+    let unsubApp: () => void;
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userRef = doc(db!, "users", firebaseUser.uid);
+        const appRef = doc(db!, "resellerApplications", firebaseUser.uid);
         
+        let currentAppStatus: string | null = null;
+
         try {
           // Check if user exists first
           const userSnap = await getDoc(userRef);
@@ -158,10 +162,25 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             await setDoc(userRef, newUser);
           }
 
+          // Listen to reseller application
+          unsubApp = onSnapshot(appRef, (appSnap) => {
+            if (appSnap.exists()) {
+              const status = appSnap.data().status;
+              currentAppStatus = status;
+              setUser((prev: User | null) => prev ? { ...prev, resellerStatus: status as any } : null);
+            } else {
+              currentAppStatus = null;
+            }
+          });
+
           // Listen to user changes
           unsubUser = onSnapshot(userRef, (docSnap) => {
             if (docSnap.exists()) {
-              setUser({ id: docSnap.id, ...docSnap.data() } as User);
+              setUser((prev: User | null) => {
+                const userData = { id: docSnap.id, ...docSnap.data() } as User;
+                // Preserve reseller status if fetched from app, otherwise use user's own status
+                return currentAppStatus ? { ...userData, resellerStatus: currentAppStatus as any } : userData;
+              });
             }
           }, (error) => {
             console.error("User listener error", error);
@@ -181,11 +200,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       } else {
         setUser(null);
         if (unsubUser) unsubUser();
+        if (unsubApp) unsubApp();
       }
     });
     return () => {
       unsubscribe();
       if (unsubUser) unsubUser();
+      if (unsubApp) unsubApp();
     };
   }, []);
 
@@ -298,7 +319,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const calculateAppliedPrice = (product: Product, quantity: number) => {
-    let basePrice = product.price - (product.price * product.discountPercentage / 100);
+    const discount = product.discountPercentage || 0;
+    let basePrice = product.price - (product.price * discount / 100);
     
     if (product.isWholesale && product.tierPricing && product.tierPricing.length > 0) {
       // Find the applicable tier
@@ -462,7 +484,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           paymentMethod,
           shippingAddress: shippingDetails.address,
           contactNumber: shippingDetails.phone,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          transactionId: shippingDetails.transactionId,
+          paymentPhone: shippingDetails.paymentPhone,
+          pointsUsed: usedPoints,
+          pointsEarned: pointsEarned
         };
 
         // 3. Perform updates
@@ -562,7 +588,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const cartTotal = cart.reduce((acc, item) => {
-    const price = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
+    const discount = item.discountPercentage || 0;
+    const price = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * discount / 100));
     return acc + (price * item.quantity);
   }, 0);
 

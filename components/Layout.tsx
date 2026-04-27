@@ -153,6 +153,7 @@ export const Navbar: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder rounded-lg shadow-xl hidden group-hover:block p-2">
                   <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="profile">{t('profile')}</Link>
                   <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded" data-key="orders">{t('orders')}</Link>
+                  <Link to="/support" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-darkBg rounded">Help & Support</Link>
                   <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 rounded" data-key="logout">{t('logout')}</button>
                 </div>
               </div>
@@ -206,8 +207,9 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="text-sm font-bold text-accent hover:text-yellow-600 whitespace-nowrap flex items-center gap-1">
               <ShoppingCart size={14} /> {t('wholesale')}
             </Link>
-            <Link to="/trial-room" className="text-sm font-bold text-blue-500 hover:text-blue-600 whitespace-nowrap flex items-center gap-1">
-              <Sparkles size={14} /> AI Trial Room
+            <Link to="/trial-room" className="text-sm font-bold text-blue-500 hover:text-blue-600 whitespace-nowrap flex items-center gap-1 relative overflow-hidden group">
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400/20 to-purple-500/20 group-hover:scale-110 transition-transform"></span>
+              <Sparkles size={14} className="animate-pulse" /> AI Trial Room
             </Link>
             <div className="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
             {categories.map(cat => (
@@ -228,8 +230,8 @@ export const Navbar: React.FC = () => {
             <Link to="/wholesale" className="block px-4 py-2 text-sm font-bold text-accent" onClick={() => setIsMenuOpen(false)}>
               {t('wholesale')}
             </Link>
-            <Link to="/trial-room" className="block px-4 py-2 text-sm font-bold text-blue-500" onClick={() => setIsMenuOpen(false)}>
-              AI Trial Room
+            <Link to="/trial-room" className="block px-4 py-2 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500 flex items-center gap-2" onClick={() => setIsMenuOpen(false)}>
+              <Sparkles size={14} className="text-blue-500" /> AI Trial Room
             </Link>
             <div className="border-t border-gray-100 dark:border-darkBorder my-1"></div>
            {categories.map(cat => (
@@ -281,6 +283,7 @@ export const Footer: React.FC = () => {
             <li><Link to="/orders" className="hover:text-white hover:underline transition" data-key="trackOrder">{t('trackOrder')}</Link></li>
             <li><Link to="/cart" className="hover:text-white hover:underline transition" data-key="shoppingCart">{t('shoppingCart')}</Link></li>
             <li><Link to="/wishlist" className="hover:text-white hover:underline transition" data-key="wishlist">{t('wishlist')}</Link></li>
+            <li><Link to="/support" className="hover:text-white hover:underline transition">Help & Support</Link></li>
           </ul>
         </div>
 

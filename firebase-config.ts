@@ -1,6 +1,7 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
+import { getMessaging, Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSYALT_jaIQrTq-oZP9sMyUJWXaLSjTY4",
@@ -14,12 +15,14 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
 let auth: Auth | undefined;
+let messaging: Messaging | undefined;
 
 if (firebaseConfig.apiKey) {
   try {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
+    messaging = getMessaging(app);
   } catch (error) {
     console.error("Firebase initialization error:", error);
   }
@@ -27,4 +30,4 @@ if (firebaseConfig.apiKey) {
   console.warn("Firebase API key is missing. Please check your .env file.");
 }
 
-export { db, auth };
+export { db, auth, messaging };

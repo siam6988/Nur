@@ -72,7 +72,8 @@ export const Cart: React.FC = () => {
         {/* Cart Items */}
         <div className="flex-1 space-y-4">
           {cart.map(item => {
-             const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
+             const discount = item.discountPercentage || 0;
+             const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * discount / 100));
              const displayName = language === 'bn' ? (item.name_bn || item.name) : item.name;
              return (
               <Card key={item.cartId} className="flex gap-4 items-center !p-4">
@@ -87,7 +88,7 @@ export const Cart: React.FC = () => {
                   )}
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-primary dark:text-white">{formatPrice(currentPrice)}</span>
-                    {(!item.isWholesale && item.discountPercentage > 0) && (
+                    {(!item.isWholesale && (item.discountPercentage || 0) > 0) && (
                       <span className="text-xs text-gray-400 line-through">{formatPrice(item.price)}</span>
                     )}
                   </div>
@@ -186,6 +187,8 @@ export const Checkout: React.FC = () => {
     note: ''
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.COD);
+  const [transactionId, setTransactionId] = useState('');
+  const [paymentPhone, setPaymentPhone] = useState('');
   const [loading, setLoading] = useState(false);
   
   // Coupon & Points State
@@ -237,7 +240,8 @@ export const Checkout: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setTimeout(async () => {
-      const success = await placeOrder(formData, paymentMethod, discountAmount, pointsDiscount);
+      const orderData = { ...formData, transactionId, paymentPhone };
+      const success = await placeOrder(orderData, paymentMethod, discountAmount, pointsDiscount);
       setLoading(false);
       if(success) {
         navigate('/orders');
@@ -295,31 +299,81 @@ export const Checkout: React.FC = () => {
               <input type="radio" name="payment" className="text-primary w-5 h-5" checked={paymentMethod === PaymentMethod.SSL} onChange={() => setPaymentMethod(PaymentMethod.SSL)} />
               <div className="ml-4 flex items-center gap-3">
                 <div className="flex gap-1 shrink-0">
-                  <img src="https://freelogopng.com/images/all_img/1656234745bkash-app-logo-png.png" alt="bKash" className="w-8 h-8 object-contain" />
-                  <img src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" alt="Nagad" className="w-8 h-8 object-contain" />
+                  <CreditCard className="w-8 h-8 text-blue-500" />
                 </div>
                 <div className="flex-1">
-                  <span className="block font-bold text-gray-800 dark:text-white" data-key="onlinePayment">{t('onlinePayment')}</span>
-                  <span className="text-xs text-gray-500" data-key="onlinePaymentDesc">Pay securely with bKash, Nagad, Cards etc. via SSLCommerz</span>
+                  <span className="block font-bold text-gray-800 dark:text-white">Credit / Debit Cards</span>
+                  <span className="text-xs text-gray-500">Pay securely with Cards via SSLCommerz</span>
+                </div>
+              </div>
+            </label>
+            
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.BKASH ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/10' : 'border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkCard'}`}>
+              <input type="radio" name="payment" className="text-pink-500 w-5 h-5" checked={paymentMethod === PaymentMethod.BKASH} onChange={() => setPaymentMethod(PaymentMethod.BKASH)} />
+              <div className="ml-4 flex items-center gap-3">
+                <img src="https://freelogopng.com/images/all_img/1656234745bkash-app-logo-png.png" alt="bKash" className="w-8 h-8 object-contain" />
+                <div>
+                  <span className="block font-bold text-gray-800 dark:text-white">bKash</span>
+                  <span className="text-xs text-gray-500">Send money to our bKash merchant number</span>
+                </div>
+              </div>
+            </label>
+
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.NAGAD ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/10' : 'border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkCard'}`}>
+              <input type="radio" name="payment" className="text-orange-500 w-5 h-5" checked={paymentMethod === PaymentMethod.NAGAD} onChange={() => setPaymentMethod(PaymentMethod.NAGAD)} />
+              <div className="ml-4 flex items-center gap-3">
+                <img src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" alt="Nagad" className="w-8 h-8 object-contain" />
+                <div>
+                  <span className="block font-bold text-gray-800 dark:text-white">Nagad</span>
+                  <span className="text-xs text-gray-500">Send money to our Nagad merchant number</span>
+                </div>
+              </div>
+            </label>
+
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition ${paymentMethod === PaymentMethod.ROCKET ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/10' : 'border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkCard'}`}>
+              <input type="radio" name="payment" className="text-purple-500 w-5 h-5" checked={paymentMethod === PaymentMethod.ROCKET} onChange={() => setPaymentMethod(PaymentMethod.ROCKET)} />
+              <div className="ml-4 flex items-center gap-3">
+                <div className="w-8 h-8 flex items-center justify-center bg-purple-600 rounded text-white font-bold text-xs">R</div>
+                <div>
+                  <span className="block font-bold text-gray-800 dark:text-white">Rocket</span>
+                  <span className="text-xs text-gray-500">Send money to our Rocket merchant number</span>
                 </div>
               </div>
             </label>
           </div>
+
+          {(paymentMethod === PaymentMethod.BKASH || paymentMethod === PaymentMethod.NAGAD || paymentMethod === PaymentMethod.ROCKET) && (
+            <div className="mt-4 p-4 border rounded-xl bg-gray-50 dark:bg-darkBg">
+               <p className="text-sm mb-4 dark:text-gray-300">Please send exactly <strong>{formatPrice(total)}</strong> to our {paymentMethod} number: <strong>017XXXXXXXX</strong></p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium mb-1 dark:text-gray-300">{paymentMethod} Account Number</label>
+                   <input type="text" value={paymentPhone} onChange={e => setPaymentPhone(e.target.value)} required placeholder={`Your ${paymentMethod} number`} className="w-full p-3 border border-gray-200 dark:border-darkBorder rounded-lg bg-transparent dark:text-white focus:outline-none focus:border-primary" />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium mb-1 dark:text-gray-300">Transaction ID</label>
+                   <input type="text" value={transactionId} onChange={e => setTransactionId(e.target.value)} required placeholder="e.g. 9X2A8BCD" className="w-full p-3 border border-gray-200 dark:border-darkBorder rounded-lg bg-transparent dark:text-white focus:outline-none focus:border-primary uppercase" />
+                 </div>
+               </div>
+            </div>
+          )}
+
           {paymentMethod === PaymentMethod.SSL && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-xl">
                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                 <strong>Note for Developer:</strong> To process real payments via bKash/Nagad using SSLCommerz or Aamarpay, you need a merchant account and a backend server (Node.js/Express) to generate session tokens and handle IPN validation securely. Client-side only payment integration is not secure and not supported by local payment gateways. This option simulates a successful order.
+                 <strong>Note for Developer:</strong> To process real payments via Cards using SSLCommerz or Aamarpay, you need a merchant account and a backend server to generate session tokens and handle IPN validation securely. This option simulates a successful order.
                </p>
             </div>
           )}
         </Card>
 
-        <div className="w-full lg:w-96">
+        <div className="w-full lg:w-96 lg:sticky lg:top-24 h-max">
           <Card>
              <h3 className="font-bold text-lg mb-4" data-key="yourOrder">{t('yourOrder')}</h3>
              <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1 no-scrollbar">
                {cart.map(item => {
-                 const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100));
+                 const discount = item.discountPercentage || 0;
+                 const currentPrice = item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * discount / 100));
                  return (
                  <div key={item.cartId} className="flex justify-between text-sm">
                    <span className="text-gray-600 dark:text-gray-400">{language === 'bn' ? (item.name_bn || item.name) : item.name} <span className="text-xs text-gray-400">x {item.quantity}</span></span>
@@ -594,6 +648,9 @@ export const Profile: React.FC = () => {
            <nav className="space-y-2">
              <Button variant="ghost" className="w-full justify-start text-primary dark:text-white bg-blue-50 dark:bg-white/5 font-semibold" data-key="orders">{t('orders')}</Button>
              <Link to="/wishlist"><Button variant="ghost" className="w-full justify-start" data-key="wishlist">{t('wishlist')}</Button></Link>
+             <Link to="/support"><Button variant="ghost" className="w-full justify-start">Support Tickets</Button></Link>
+             <Link to="/notifications"><Button variant="ghost" className="w-full justify-start">Notifications</Button></Link>
+             <Link to="/info"><Button variant="ghost" className="w-full justify-start">App Info</Button></Link>
              <Button variant="ghost" onClick={logout} className="w-full justify-start text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10" data-key="logout">{t('logout')}</Button>
            </nav>
         </Card>
@@ -616,7 +673,7 @@ export const Profile: React.FC = () => {
                  {order.items.map((item, idx) => (
                    <div key={idx} className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
                      <div>
-                       {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - {formatPrice((item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * item.discountPercentage / 100))) * item.quantity)}
+                       {language === 'bn' ? (item.name_bn || item.name) : item.name} x{item.quantity} - {formatPrice((item.appliedPrice !== undefined ? item.appliedPrice : (item.price - (item.price * (item.discountPercentage || 0) / 100))) * item.quantity)}
                      </div>
                      {order.status === OrderStatus.DELIVERED && (
                        <Button variant="outline" onClick={() => handleOpenReview(item.id)} className="text-xs py-1 h-auto">
@@ -811,6 +868,261 @@ export const Login: React.FC = () => {
           </div>
         </form>
       </Card>
+    </div>
+  );
+};
+
+import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, updateDoc, doc, getDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase-config';
+import { SupportTicket, Notification, GeneralSettings } from '../types';
+
+export const SupportCenter: React.FC = () => {
+  const { user } = useStore();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    const q = query(
+      collection(db, 'support_tickets'),
+      where('userId', '==', user.id),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedTickets = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as SupportTicket[];
+      setTickets(fetchedTickets);
+    });
+    return () => unsubscribe();
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'support_tickets'), {
+        subject,
+        message,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+        replies: []
+      });
+      setSubject('');
+      setMessage('');
+      alert('Ticket submitted successfully');
+    } catch (err) {
+      console.error(err);
+      alert('Error submitting ticket');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !selectedTicket.id || !replyMessage.trim()) return;
+    try {
+      await updateDoc(doc(db, 'support_tickets', selectedTicket.id), {
+        replies: arrayUnion({
+          sender: 'user',
+          message: replyMessage,
+          createdAt: new Date().toISOString()
+        })
+      });
+      setReplyMessage('');
+    } catch (err) {
+      console.error(err);
+      alert('Error sending reply');
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Help & Support</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card>
+          <h2 className="text-xl font-bold mb-4">Create New Ticket</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-300">Subject</label>
+              <input type="text" required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white p-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-300">Message</label>
+              <textarea required value={message} onChange={(e) => setMessage(e.target.value)} className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white p-2 rounded" rows={4}></textarea>
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">{loading ? 'Submitting...' : 'Submit Ticket'}</Button>
+          </form>
+        </Card>
+
+        <div>
+          <h2 className="text-xl font-bold mb-4">Your Tickets</h2>
+          {tickets.length === 0 ? (
+            <p className="text-gray-500">No tickets found.</p>
+          ) : (
+            <div className="space-y-4">
+              {tickets.map(ticket => (
+                <Card key={ticket.id} className="cursor-pointer hover:border-primary transition" onClick={() => setSelectedTicket(ticket)}>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-bold">{ticket.subject}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${ticket.status === 'Open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{ticket.status}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1">{ticket.message}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {selectedTicket && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex flex-col flex-1 h-[70vh]">
+              <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-bold">{selectedTicket.subject}</h2>
+                 <button onClick={() => setSelectedTicket(null)}><X size={20} className="text-gray-500 hover:text-gray-800" /></button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
+                <div className="bg-gray-50 dark:bg-darkBg p-4 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">You (Original Message)</p>
+                  <p className="text-sm">{selectedTicket.message}</p>
+                </div>
+                {selectedTicket.replies?.map((reply, idx) => (
+                  <div key={idx} className={`p-4 rounded-lg ${reply.sender === 'user' ? 'bg-primary/10 ml-8' : 'bg-gray-100 dark:bg-darkBg mr-8'}`}>
+                     <p className="text-xs text-gray-500 mb-1">{reply.sender === 'user' ? 'You' : 'Admin'}</p>
+                     <p className="text-sm">{reply.message}</p>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleReply} className="flex gap-2 border-t pt-4">
+                 <input type="text" required value={replyMessage} onChange={e => setReplyMessage(e.target.value)} placeholder="Type your reply..." className="flex-1 border p-2 rounded dark:bg-darkBg dark:border-darkBorder" />
+                 <Button type="submit">Reply</Button>
+              </form>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const InfoSettings: React.FC = () => {
+  const [settings, setSettings] = useState<GeneralSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'general');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setSettings(docSnap.data() as GeneralSettings);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  if (loading) return <div className="text-center py-20"><LoadingSpinner /></div>;
+  if (!settings) return <div className="text-center py-20">Settings not configured yet.</div>;
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <h1 className="text-2xl font-bold mb-6 text-center">About {settings.storeName || 'Us'}</h1>
+      <Card className="space-y-6">
+        <div>
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><Phone size={18} /> Contact Info</h2>
+          <p className="text-gray-600 dark:text-gray-300">Phone: {settings.supportPhone || 'N/A'}</p>
+          <p className="text-gray-600 dark:text-gray-300">Email: {settings.supportEmail || 'N/A'}</p>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><MapPin size={18} /> Address</h2>
+          <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{settings.address || 'N/A'}</p>
+        </div>
+        {settings.facebookUrl && (
+          <div>
+            <h2 className="text-lg font-bold mb-2 flex items-center gap-2">Social</h2>
+            <a href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Facebook Page</a>
+          </div>
+        )}
+        <div>
+           <h2 className="text-lg font-bold mb-2">Shipping Policy</h2>
+           <div className="prose dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-300">
+             {settings.shippingPolicy ? <p className="whitespace-pre-wrap">{settings.shippingPolicy}</p> : 'N/A'}
+           </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export const NotificationsPage: React.FC = () => {
+  const { user } = useStore();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    const q = query(
+      collection(db, 'notifications'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Notification[];
+      
+      const filtered = fetched.filter(n => n.target === 'all' || n.target === 'customers' || n.target === user.id);
+      setNotifications(filtered);
+    });
+    return () => unsubscribe();
+  }, [user, navigate]);
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <h1 className="text-2xl font-bold mb-6">Notifications</h1>
+      {notifications.length === 0 ? (
+        <Card className="text-center py-10">
+          <p className="text-gray-500">No new notifications</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {notifications.map(notif => (
+            <Card key={notif.id} className="border-l-4 border-l-primary">
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-400 mb-1">{notif.createdAt ? new Date(notif.createdAt.seconds * 1000).toLocaleDateString() : notif.date}</span>
+                <h3 className="font-bold text-lg">{notif.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{notif.message}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -10,9 +10,10 @@ import Home from './pages/Home';
 import { Shop, ProductDetails } from './pages/ProductPages';
 import { Wholesale } from './pages/Wholesale';
 import { TrialRoom } from './pages/TrialRoom';
-import { Cart, Checkout, Profile, Login, Wishlist } from './pages/UserPages';
+import { Cart, Checkout, Profile, Login, Wishlist, SupportCenter, InfoSettings, NotificationsPage } from './pages/UserPages';
 import { About, Contact, Policy, Terms, Affiliate, ShippingPolicy, Blogs, BlogDetails } from './pages/StaticPages';
 import { BlogAdmin } from './pages/AdminPages';
+import { useFCM } from './hooks/useFCM';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -108,6 +109,10 @@ const AnimatedRoutes = () => {
         <Route path="/wishlist" element={<PageWrapper><Wishlist /></PageWrapper>} />
         <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
         
+        <Route path="/support" element={<PageWrapper><SupportCenter /></PageWrapper>} />
+        <Route path="/info" element={<PageWrapper><InfoSettings /></PageWrapper>} />
+        <Route path="/notifications" element={<PageWrapper><NotificationsPage /></PageWrapper>} />
+
         {/* Static Pages */}
         <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
         <Route path="/blogs" element={<PageWrapper><Blogs /></PageWrapper>} />
@@ -127,6 +132,7 @@ const AnimatedRoutes = () => {
 
 // Wrap main app to consume context and tie animation to real loading state
 const AppContent: React.FC = () => {
+  useFCM();
   const { isLoading } = useStore();
   const [initialLoading, setInitialLoading] = useState(true);
   const [finishLoading, setFinishLoading] = useState(false);

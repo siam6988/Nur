@@ -3,7 +3,7 @@ import { collection, getDocs, orderBy, query, getDoc, doc, updateDoc, setDoc } f
 import { db } from '../firebase-config';
 import { BlogPost, BlogComment } from '../types';
 import { Mail, Phone, MapPin, DollarSign, Users, Gift, ShieldCheck, Target, Truck, Clock, Map, Lock, FileText, AlertCircle, ShoppingBag, Star, Heart, ArrowRight, Loader2, UserPlus, Link as LinkIcon, ArrowLeft, ThumbsUp, MessageSquare, Send } from 'lucide-react';
-import { Button } from '../components/UIComponents';
+import { Button, BlogCardSkeleton } from '../components/UIComponents';
 import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -653,8 +653,10 @@ export const Blogs: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 size={48} className="animate-spin text-primary dark:text-accent" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <BlogCardSkeleton key={`skeleton-${index}`} />
+          ))}
         </div>
       ) : blogs.length === 0 ? (
         <div className="text-center py-20 text-gray-500 dark:text-gray-400">

@@ -1,324 +1,221 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { Camera, Upload, Sparkles, User, Ruler, Weight, Globe, Calendar, RefreshCcw, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Button, LoadingSpinner, ProductCard } from '../components/UIComponents';
-import { Product } from '../types';
-import { useSEO } from '../hooks/useSEO';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Card, Button } from '../components/UIComponents';
+import { Upload, Sparkles, Image as ImageIcon, ArrowRight, RefreshCw, CheckCircle2, AlertCircle, Shirt } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const TrialRoom: React.FC = () => {
-  useSEO({
-    title: 'AI Virtual Trial Room',
-    description: 'Try on clothes virtually using our AI-powered Trial Room feature. See how it looks before you buy!',
-  });
-
-  const { products, formatPrice, t, language, showToast } = useStore();
+  const { products, language, formatPrice } = useStore();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const productId = searchParams.get('product');
-
-  const selectedProduct = products.find(p => p.id === productId) || null;
-
-  const [step, setStep] = useState<number>(selectedProduct ? 2 : 1);
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    height: '',
-    weight: '',
-    country: '',
-    age: ''
-  });
   
-  const [generating, setGenerating] = useState(false);
-  const [progressMsg, setProgressMsg] = useState('');
+  const initialProduct = products.find(p => p.id === productId) || products[0];
+  const [selectedProduct, setSelectedProduct] = useState(initialProduct);
+  
+  const [userImage, setUserImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setUserPhoto(url);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserImage(reader.result as string);
+        setResultImage(null);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleGenerate = () => {
-    if (!userPhoto || !formData.height || !formData.weight || !formData.age || !selectedProduct) {
-      showToast('Please fill all fields and upload a photo', 'error');
-      return;
-    }
-
-    setGenerating(true);
+    if (!userImage || !selectedProduct) return;
+    
+    setIsProcessing(true);
+    setProgress(0);
     setResultImage(null);
+    setStatusText('Analyzing body proportions...');
     
-    // Simulate very fast AI generation process
-    const messages = [
-      "Analyzing body proportions...",
-      "Mapping physical dimensions...",
-      "Applying 3D fabric physics...",
-      "Adjusting lighting and shadows...",
-      "Finalizing composite..."
+    // Simulate AI processing steps
+    let currentStep = 0;
+    const steps = [
+      'Scanning subject...',
+      'Analyzing body proportions...',
+      'Mapping garment to 3D model...',
+      'Adjusting lighting and shadows...',
+      'Rendering final output...'
     ];
-    
-    let msgIndex = 0;
-    setProgressMsg(messages[0]);
-    
+
     const interval = setInterval(() => {
-      msgIndex++;
-      if (msgIndex < messages.length) {
-        setProgressMsg(messages[msgIndex]);
-      } else {
-        clearInterval(interval);
-        setGenerating(false);
-        // We simulate the output using the user's photo with a magical filter overlay styling
-        setResultImage(userPhoto);
-      }
-    }, 600); // 3 seconds total
+      setProgress(prev => {
+        const next = prev + 2;
+        if (next % 20 === 0 && currentStep < steps.length - 1) {
+          currentStep++;
+          setStatusText(steps[currentStep]);
+        }
+        if (next >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return next;
+      });
+    }, 60);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      setProgress(100);
+      setIsProcessing(false);
+      // Mock result by returning the product image, as a real VTON API is required for actual image generation
+      setResultImage(selectedProduct?.images[0] || null); 
+    }, 3500);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-darkBg pt-10 pb-20">
-      <div className="container mx-auto px-4 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="text-center mb-10">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="inline-flex items-center justify-center p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4"
+        >
+          <Sparkles size={28} />
+        </motion.div>
+        <h1 className="text-3xl md:text-5xl font-extrabold mb-4 dark:text-white tracking-tight">
+          AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Virtual Try-On</span>
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+          Experience our garments instantly. Upload a front-facing photo and let our advanced AI map the clothing directly to your body.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div className="text-center mb-10">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center justify-center p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4"
-          >
-            <Sparkles size={32} />
-          </motion.div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary dark:text-white tracking-tight mb-4">
-            AI Trial Room
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
-            See how it looks on you before buying. Upload your photo and let our fast AI magic do the rest.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left panel - Product Selection/Info */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white dark:bg-darkCard p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-darkBorder">
-              <h2 className="font-bold text-lg text-primary dark:text-white mb-4 flex items-center gap-2">
-                <span className="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                Selected Product
-              </h2>
-              
-              {selectedProduct ? (
-                <div className="space-y-4">
-                  <div className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/5]">
-                    <img src={selectedProduct.images[0]} alt="Product" className="w-full h-full object-cover" />
-                    <button 
-                      onClick={() => { navigate('/shop'); }}
-                      className="absolute top-2 right-2 bg-white/90 text-primary p-2 flex items-center gap-1 text-xs font-bold rounded-lg shadow"
-                    >
-                      <RefreshCcw size={14} /> Change
-                    </button>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2">
-                      {language === 'bn' ? (selectedProduct.name_bn || selectedProduct.name_en) : selectedProduct.name_en}
-                    </h3>
-                    <p className="text-primary dark:text-accent font-bold mt-1">{formatPrice(selectedProduct.price)}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-darkBorder rounded-xl">
-                  <ShoppingBag size={48} className="mx-auto text-gray-400 mb-3" />
-                  <p className="text-gray-500 mb-4">No product selected</p>
-                  <Button onClick={() => navigate('/shop')} variant="outline" className="w-full">
-                    Browse Shop
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right panel - User Input & Generation */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="bg-white dark:bg-darkCard p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-darkBorder relative overflow-hidden">
-              
-              {/* If step 1 (Needs Product) */}
-              {!selectedProduct && (
-                <div className="absolute inset-0 z-10 bg-white/50 dark:bg-darkCard/50 backdrop-blur-sm flex items-center justify-center">
-                  <div className="bg-white dark:bg-darkCard p-6 rounded-xl shadow-xl border border-gray-200 dark:border-darkBorder text-center max-w-sm">
-                    <p className="font-bold text-lg mb-2 dark:text-white">Select a Product First</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">You need to select a product from the shop to try it on.</p>
-                    <Button onClick={() => navigate('/shop')} className="w-full">Go to Shop</Button>
-                  </div>
-                </div>
-              )}
-
-              <h2 className="font-bold text-lg text-primary dark:text-white mb-6 flex items-center gap-2">
-                <span className="bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                Your Details
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Photo Upload area */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Your Full Body Photo
-                  </label>
-                  <div 
-                    className={`border-2 border-dashed rounded-xl h-64 flex flex-col items-center justify-center relative overflow-hidden transition-colors ${userPhoto ? 'border-primary/50' : 'border-gray-300 dark:border-darkBorder hover:border-primary'}`}
-                  >
-                    {userPhoto ? (
-                      <>
-                        <img src={userPhoto} alt="User" className="w-full h-full object-cover" />
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                          <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold py-1.5 px-3 rounded-full flex items-center gap-1 mx-auto"
-                          >
-                            <Camera size={14} /> Retake
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-4" onClick={() => fileInputRef.current?.click()}>
-                        <Upload size={32} className="mx-auto text-gray-400 mb-3" />
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Click to upload photo</p>
-                        <p className="text-xs text-gray-400">Clear, well-lit, front-facing</p>
-                        <Button type="button" variant="outline" className="mt-4 px-6 h-8 text-xs rounded-full">Browse</Button>
-                      </div>
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      ref={fileInputRef} 
-                      onChange={handlePhotoUpload}
-                    />
-                  </div>
-                </div>
-
-                {/* Form fields */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <Ruler size={14} /> Height (cm/ft)
-                    </label>
-                    <input 
-                      type="text" 
-                      value={formData.height}
-                      onChange={(e) => setFormData({...formData, height: e.target.value})}
-                      placeholder="e.g. 175cm or 5'9" 
-                      className="w-full border dark:border-darkBorder bg-gray-50 dark:bg-darkBg dark:text-white p-3 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <Weight size={14} /> Weight (kg)
-                    </label>
-                    <input 
-                      type="text" 
-                      value={formData.weight}
-                      onChange={(e) => setFormData({...formData, weight: e.target.value})}
-                      placeholder="e.g. 70kg" 
-                      className="w-full border dark:border-darkBorder bg-gray-50 dark:bg-darkBg dark:text-white p-3 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Calendar size={14} /> Age
-                      </label>
-                      <input 
-                        type="number" 
-                        value={formData.age}
-                        onChange={(e) => setFormData({...formData, age: e.target.value})}
-                        placeholder="e.g. 25" 
-                        className="w-full border dark:border-darkBorder bg-gray-50 dark:bg-darkBg dark:text-white p-3 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Globe size={14} /> Country
-                      </label>
-                      <input 
-                        type="text" 
-                        value={formData.country}
-                        onChange={(e) => setFormData({...formData, country: e.target.value})}
-                        placeholder="e.g. BD" 
-                        className="w-full border dark:border-darkBorder bg-gray-50 dark:bg-darkBg dark:text-white p-3 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <Button 
-                      onClick={handleGenerate} 
-                      className="w-full py-4 text-lg font-bold shadow-lg shadow-blue-500/20 group overflow-hidden relative"
-                      disabled={generating}
-                    >
-                      {generating ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <Loader2 size={20} className="animate-spin" /> 
-                          <span className="text-sm relative z-10">{progressMsg}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-2 relative z-10">
-                          <Sparkles size={20} className="group-hover:animate-ping" /> Generate Try-On
-                        </div>
-                      )}
-                      {/* Magical glow effect behind button */}
-                      <div className="absolute inset-0 block bg-gradient-to-r from-blue-600 via-accent to-blue-600 opacity-0 group-hover:opacity-100 bg-[length:200%_auto] animate-gradient z-0 transition-opacity duration-300"></div>
-                      <div className="absolute inset-0 bg-primary opacity-100 group-hover:opacity-0 z-0 transition-opacity duration-300"></div>
-                    </Button>
-                  </div>
+        {/* Left Column: Product Selection */}
+        <div className="lg:col-span-3 space-y-4">
+          <h3 className="font-bold text-lg dark:text-white flex items-center gap-2">
+            <Shirt size={20} /> Select Item
+          </h3>
+          <div className="h-[600px] overflow-y-auto pr-2 space-y-3 no-scrollbar">
+            {products.filter(p => !p.isWholesale).map(product => (
+              <div 
+                key={product.id}
+                onClick={() => setSelectedProduct(product)}
+                className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-all border-2 ${selectedProduct?.id === product.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent bg-white dark:bg-darkCard hover:border-blue-200 dark:hover:border-blue-800 shadow-sm'}`}
+              >
+                <img src={product.images[0]} alt={product.name_en} className="w-20 h-24 object-cover rounded-lg" />
+                <div className="flex flex-col justify-center">
+                  <h4 className="text-sm font-bold dark:text-white line-clamp-2">{language === 'bn' ? (product.name_bn || product.name_en) : product.name_en}</h4>
+                  <p className="text-sm text-gray-500 font-medium mt-1">{formatPrice(product.price)}</p>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            {/* AI Result Area */}
-            <AnimatePresence>
-              {resultImage && selectedProduct && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-white dark:bg-darkCard rounded-2xl shadow-xl shadow-accent/5 border-2 border-accent p-6 overflow-hidden relative"
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="font-extrabold text-2xl bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent dark:text-white flex items-center gap-2">
-                      <Sparkles className="text-accent" /> AI Generation Success
-                    </h2>
-                  </div>
-
-                  <div className="relative w-full aspect-[3/4] md:aspect-square lg:aspect-[4/5] rounded-xl overflow-hidden bg-gray-900 group">
-                    {/* Fake Composite rendering for fast visually pleasing UI */}
-                    <img src={resultImage} alt="User Base" className="w-full h-full object-cover filter brightness-90 saturate-110" />
-                    <img 
-                      src={selectedProduct.images[0]} 
-                      alt="Product Overlay" 
-                      className="absolute inset-0 w-full h-full object-contain object-bottom opacity-90 drop-shadow-2xl mix-blend-normal"
-                      style={{ transform: 'scale(0.85) translateY(10%)' }}
-                    />
-                    
-                    {/* Scanning styling effect overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/20 to-transparent w-full h-[20%] animate-scan pointer-events-none mix-blend-overlay"></div>
-                    
-                    <div className="absolute top-4 right-4 bg-primary/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-bold border border-white/20">
-                      NUR AI Engine
-                    </div>
-
-                    <div className="absolute bottom-4 inset-x-4 flex justify-between">
-                      <div className="bg-black/50 backdrop-blur-md p-3 rounded-xl border border-white/10 text-white w-2/3">
-                        <p className="text-xs text-gray-300 mb-1">Generated Product:</p>
-                        <p className="font-bold text-sm truncate">{selectedProduct.name_en}</p>
-                      </div>
-                      <Button onClick={() => navigate(`/checkout`)} className="bg-accent text-primary hover:bg-yellow-400 font-bold whitespace-nowrap shadow-xl">
-                        Buy Now <ArrowRight size={16} className="ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* Center/Right Column: Workspace */}
+        <div className="lg:col-span-9 bg-white dark:bg-darkCard rounded-3xl shadow-xl border border-gray-100 dark:border-darkBorder overflow-hidden flex flex-col md:flex-row">
+          
+          {/* User Photo Input */}
+          <div className="flex-1 p-8 border-b md:border-b-0 md:border-r border-gray-100 dark:border-darkBorder flex flex-col items-center justify-center min-h-[400px] relative">
+            <h3 className="text-lg font-semibold mb-6 absolute top-6 left-6 dark:text-white">Your Photo</h3>
             
+            {userImage ? (
+              <div className="relative w-full h-full flex flex-col items-center justify-center">
+                <img src={userImage} alt="User" className="max-w-full max-h-[400px] object-contain rounded-lg shadow-md" />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-4 right-4 bg-white/90 dark:bg-darkBg/90 backdrop-blur px-4 py-2 rounded-full text-sm font-medium shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  Change Photo
+                </button>
+              </div>
+            ) : (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full max-w-sm aspect-[3/4] border-3 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+              >
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-all">
+                  <Upload size={28} className="text-gray-400 group-hover:text-blue-500" />
+                </div>
+                <p className="font-semibold text-gray-700 dark:text-gray-300">Upload a Photo</p>
+                <p className="text-sm text-gray-500 text-center mt-2 px-6">For best results, use a well-lit, front-facing photo against a plain background.</p>
+              </div>
+            )}
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+          </div>
+
+          {/* AI Result */}
+          <div className="flex-1 p-8 bg-gray-50 dark:bg-darkBg flex flex-col items-center justify-center min-h-[400px] relative">
+            <h3 className="text-lg font-semibold mb-6 absolute top-6 left-6 dark:text-white text-center w-full md:w-auto md:text-left">Result</h3>
+            
+            {!userImage ? (
+              <div className="text-center opacity-50 flex flex-col items-center">
+                <ImageIcon size={48} className="text-gray-400 mb-4" />
+                <p className="text-gray-500">Upload a photo to see the magic</p>
+              </div>
+            ) : isProcessing ? (
+              <div className="w-full max-w-sm flex flex-col items-center">
+                <div className="relative w-32 h-32 mb-8">
+                  <svg className="animate-spin w-full h-full" viewBox="0 0 100 100">
+                    <circle className="text-gray-200 dark:text-gray-700 stroke-current" strokeWidth="8" cx="50" cy="50" r="40" fill="transparent"></circle>
+                    <circle className="text-blue-500 stroke-current" strokeWidth="8" strokeLinecap="round" cx="50" cy="50" r="40" fill="transparent" strokeDasharray="250" strokeDashoffset={250 - (250 * progress) / 100}></circle>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{progress}%</span>
+                  </div>
+                </div>
+                <h4 className="font-bold text-lg dark:text-white mb-2">{statusText}</h4>
+                <p className="text-sm text-gray-500 text-center">Using deep learning to wrap fabrics dynamically.</p>
+              </div>
+            ) : resultImage ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative w-full h-full flex flex-col items-center justify-center"
+              >
+                {/* Simulated blend: User image underneath, product over top */}
+                <div className="relative group max-w-full max-h-[400px] rounded-lg shadow-xl overflow-hidden bg-white dark:bg-darkCard">
+                   <img src={userImage} alt="Background" className="w-auto h-[400px] object-cover" />
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 0.9 }}
+                     transition={{ duration: 1 }}
+                     className="absolute inset-0 flex items-center justify-center mix-blend-multiply dark:mix-blend-normal"
+                   >
+                     <img src={resultImage} alt="Product Overlay" className="w-auto h-[400px] object-cover" />
+                   </motion.div>
+                </div>
+                
+                <div className="mt-8 flex gap-4">
+                  <Button onClick={() => setResultImage(null)} variant="outline" className="gap-2">
+                     <RefreshCw size={16} /> Retake
+                  </Button>
+                  <Link to={`/product/${selectedProduct?.id}`}>
+                    <Button className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0">
+                      Buy This Look <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="w-full flex flex-col items-center justify-center h-full">
+                <Button 
+                  onClick={handleGenerate} 
+                  className="py-4 px-8 text-lg rounded-full shadow-xl shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 transition-transform hover:scale-105"
+                >
+                  <Sparkles size={20} className="mr-2" /> Generate Try-On
+                </Button>
+                <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 bg-blue-50 dark:bg-blue-900/10 px-4 py-2 rounded-lg">
+                   <AlertCircle size={16} className="text-blue-500" />
+                   <span>Generates instantly. Private and secure.</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

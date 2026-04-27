@@ -33,9 +33,9 @@ export const ImageWithLoader = ({ src, alt, className }: { src: string, alt: str
 };
 
 // New Card Component
-export const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => {
+export const Card: React.FC<{ children: React.ReactNode, className?: string, onClick?: () => void }> = ({ children, className = '', onClick }) => {
   return (
-    <div className={`bg-white dark:bg-darkCard p-6 rounded-lg shadow-sm border border-gray-100 dark:border-darkBorder transition-colors ${className}`}>
+    <div className={`bg-white dark:bg-darkCard p-6 rounded-lg shadow-sm border border-gray-100 dark:border-darkBorder transition-colors ${className}`} onClick={onClick}>
       {children}
     </div>
   );
@@ -69,7 +69,8 @@ export const AvatarRenderer: React.FC<{ avatar: string | undefined, className?: 
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { addToCart, wishlist, toggleWishlist, language, user, t, formatPrice } = useStore();
-  const discountedPrice = product.price - (product.price * product.discountPercentage / 100);
+  const discount = product.discountPercentage || 0;
+  const discountedPrice = product.price - (product.price * discount / 100);
   
   const isWishlisted = wishlist.some(item => item.id === product.id);
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
@@ -123,7 +124,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </Link>
-        {product.discountPercentage > 0 && !product.isWholesale && (
+        {(product.discountPercentage || 0) > 0 && !product.isWholesale && (
           <span className="absolute top-2 left-2 bg-accent text-primary text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
             -{product.discountPercentage}%
           </span>
@@ -157,7 +158,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         <div className="mt-auto">
           <div className="flex items-center space-x-2 mb-2">
             {priceDisplay}
-            {product.discountPercentage > 0 && !product.isWholesale && (
+            {(product.discountPercentage || 0) > 0 && !product.isWholesale && (
               <span className="text-gray-400 dark:text-gray-600 text-[10px] md:text-xs line-through">{formatPrice(product.price)}</span>
             )}
           </div>
@@ -170,14 +171,14 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
               </span>
             </div>
             
-            <div className="flex items-center gap-1.5 border border-gray-100 dark:border-darkBorder rounded-full p-1 bg-gray-50 dark:bg-darkBg">
+            <div className="flex items-center gap-1.5 border border-gray-100 dark:border-darkBorder rounded-full p-1 bg-gray-50 dark:bg-darkBg shadow-sm">
               <Link
                 to={`/trial-room?product=${product.id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-800/60 text-blue-700 dark:text-blue-300 w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                className="bg-gradient-to-br from-blue-100 to-purple-100 hover:from-blue-200 hover:to-purple-200 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-purple-300 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm group relative overflow-hidden"
                 title="AI Try On"
               >
-                 <Sparkles size={12} />
+                 <Sparkles size={14} className="group-hover:scale-110 transition-transform" />
               </Link>
               <button 
                 onClick={handleAddToCart}
@@ -247,6 +248,25 @@ export const ProductCardSkeleton: React.FC = () => {
             <div className="h-8 bg-gray-200 dark:bg-gray-700/50 rounded-full w-20"></div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+export const BlogCardSkeleton: React.FC = () => {
+  return (
+    <div className="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden animate-pulse">
+      <div className="relative overflow-hidden h-60 bg-gray-200 dark:bg-gray-800"></div>
+      <div className="p-6">
+        <div className="h-3 bg-gray-200 dark:bg-gray-700/50 rounded w-1/3 mb-4"></div>
+        <div className="h-6 bg-gray-200 dark:bg-gray-700/50 rounded w-3/4 mb-3"></div>
+        <div className="h-6 bg-gray-200 dark:bg-gray-700/50 rounded w-1/2 mb-5"></div>
+        <div className="space-y-2 mb-6">
+          <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-2/3"></div>
+        </div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700/50 rounded w-1/4"></div>
       </div>
     </div>
   );
