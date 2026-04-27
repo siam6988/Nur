@@ -891,15 +891,24 @@ export const SupportCenter: React.FC = () => {
     }
     const q = query(
       collection(db, 'support_tickets'),
-      where('userId', '==', user.id),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.id)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedTickets = snapshot.docs.map(doc => ({
+      let fetchedTickets = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as SupportTicket[];
+      
+      // Sort in Javascript to avoid need for composite index in Firestore
+      fetchedTickets.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime() || 0;
+        const timeB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime() || 0;
+        return timeB - timeA; // desc
+      });
+      
       setTickets(fetchedTickets);
+    }, (error) => {
+      console.error("Error fetching support tickets:", error);
     });
     return () => unsubscribe();
   }, [user, navigate]);
@@ -932,6 +941,16 @@ export const SupportCenter: React.FC = () => {
 
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
+
+  // Keep selectedTicket updated when tickets array changes (e.g. new replies)
+  React.useEffect(() => {
+    if (selectedTicket) {
+      const updatedTicket = tickets.find(t => t.id === selectedTicket.id);
+      if (updatedTicket) {
+        setSelectedTicket(updatedTicket);
+      }
+    }
+  }, [tickets]);
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
