@@ -472,6 +472,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const pointsDiscount = usedPoints; // 1 point = 1 BDT discount (or whatever rule)
         const finalTotal = Math.max(0, subTotal + shippingCost - discountAmount - pointsDiscount);
 
+        const pointsEarned = Math.floor(finalTotal / 100);
+
         const newOrder: Order = {
           id: `ORD-${Date.now()}`,
           userId: user.id,
@@ -503,7 +505,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
 
         // Update User Points (Earned - Used)
-        const pointsEarned = Math.floor(finalTotal / 100);
         const newPoints = currentPoints - usedPoints + pointsEarned;
         transaction.update(userRef, { points: newPoints });
         

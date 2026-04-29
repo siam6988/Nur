@@ -3,10 +3,12 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ProductCard, RatingStars, Button, Card, LoadingSpinner, ProductCardSkeleton } from '../components/UIComponents';
 import { CATEGORIES } from '../constants';
-import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package, Sparkles, Loader2 } from 'lucide-react';
+import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package, Sparkles, Loader2, Bot } from 'lucide-react';
 import { Product, OrderStatus } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../hooks/useSEO';
+import Markdown from 'react-markdown';
+import { getStylistAdvice } from '../services/gemini';
 
 // --- Shop Page ---
 export const Shop: React.FC = () => {
@@ -269,7 +271,7 @@ export const ProductDetails: React.FC = () => {
   // AI Stylist States
   const [showStylist, setShowStylist] = useState(false);
   const [isStyling, setIsStyling] = useState(false);
-  const [stylingTips, setStylingTips] = useState<string[]>([]);
+  const [stylingAdvice, setStylingAdvice] = useState<string>('');
 
   const handleAIFit = () => {
     if (!fitHeight || !fitWeight) return;
@@ -297,7 +299,7 @@ export const ProductDetails: React.FC = () => {
       setFitResult(null);
       setShowAIFitPrompt(false);
       setShowStylist(false);
-      setStylingTips([]);
+      setStylingAdvice('');
       if (product.isWholesale && product.minimumOrderQuantity) {
         setQuantity(product.minimumOrderQuantity);
       } else {
@@ -307,36 +309,27 @@ export const ProductDetails: React.FC = () => {
     }
   }, [product]);
 
-  const handleAskStylist = () => {
-    if (stylingTips.length > 0) {
+  const handleAskStylist = async () => {
+    if (stylingAdvice) {
       setShowStylist(!showStylist);
       return;
     }
     
     setShowStylist(true);
     setIsStyling(true);
-    setTimeout(() => {
-      // Mock AI stylist output based on category
-      let tips = [
-        "Pair it with classic white sneakers for a clean look.",
-        "Layer under a denim jacket for cooler evenings.",
-        "Accessorize with simple silver minimalist jewelry."
-      ];
-      if (product?.categoryId === 'c2' || product?.category === 'electronics') {
-        tips = [
-          "Perfect for your minimalist desk setup.",
-          "Keep it protected with an anti-scratch clear case.",
-          "Pair with a sleek wireless charging pad to complete the look."
-        ];
-      } else if (product?.categoryId === 'c3') {
-        tips = [
-          "Use a matte setting spray to lock the look in completely.",
-          "Pair with a neutral lip color to let the eyes shine."
-        ];
-      }
-      setStylingTips(tips);
+    try {
+      const advice = await getStylistAdvice(
+        product?.name || '',
+        product?.category || '',
+        product?.description || ''
+      );
+      setStylingAdvice(advice);
+    } catch (error) {
+      console.error(error);
+      setStylingAdvice("Sorry, something went wrong while asking the AI Stylist.");
+    } finally {
       setIsStyling(false);
-    }, 2500);
+    }
   };
 
   if (isLoading) {
@@ -514,7 +507,7 @@ export const ProductDetails: React.FC = () => {
                  >
                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl p-5 shadow-sm">
                      <h4 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-3 flex items-center gap-2">
-                       <Sparkles size={14} /> AI Stylist Recommendations
+                       <Bot size={16} /> AI Stylist Recommendations
                      </h4>
                      {isStyling ? (
                        <div className="flex items-center gap-3 text-sm text-gray-500 py-2">
@@ -522,14 +515,9 @@ export const ProductDetails: React.FC = () => {
                          Analyzing trends and item features...
                        </div>
                      ) : (
-                       <ul className="space-y-2">
-                         {stylingTips.map((tip, idx) => (
-                           <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                             <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
-                             {tip}
-                           </li>
-                         ))}
-                       </ul>
+                       <div className="text-sm text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">
+                         <Markdown>{stylingAdvice}</Markdown>
+                       </div>
                      )}
                    </div>
                  </motion.div>

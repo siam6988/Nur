@@ -39,3 +39,26 @@ export const analyzeImageForSearch = async (file: File): Promise<string> => {
     throw error;
   }
 };
+
+export const getStylistAdvice = async (productName: string, category: string, description: string): Promise<string> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    const prompt = `You are a professional fashion and lifestyle stylist. I am looking at a product on an e-commerce website. 
+Product Name: ${productName}
+Category: ${category}
+Description: ${description}
+
+Provide styling tips, suggestions for what to pair it with, and advice on occasions it might be best for. Keep it concise, engaging, and in markdown format.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+    });
+
+    return response.text || 'Sorry, I am unable to provide styling advice for this product at the moment.';
+  } catch (error) {
+    console.error("Gemini Stylist Error:", error);
+    return "Error getting stylist advice. Please check if your Gemini API key is configured correctly.";
+  }
+};
