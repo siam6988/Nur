@@ -92,7 +92,7 @@ const SpecialOfferBanner = () => {
 const Home: React.FC = () => {
   useSEO({
     title: 'Home',
-    description: 'NUR - Best Online Shopping Website in Bangladesh. Buy electronics, fashion, and home products at the best price with fast delivery.',
+    description: 'NUR - Premium Online Shopping. Discover the latest trends, exclusive electronics, fashion, and home products.',
     keywords: 'online shopping Bangladesh, buy electronics BD, NUR shop, cheap products BD',
     url: 'https://nur-eight.vercel.app/'
   });

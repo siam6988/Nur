@@ -1,18 +1,20 @@
-export enum OrderStatus {
-  PENDING = 'Pending',
-  CONFIRMED = 'Confirmed',
-  SHIPPED = 'Shipped',
-  DELIVERED = 'Delivered',
-  CANCELLED = 'Cancelled'
-}
+export const OrderStatus = {
+  PENDING: 'Pending',
+  CONFIRMED: 'Confirmed',
+  SHIPPED: 'Shipped',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled'
+} as const;
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
-export enum PaymentMethod {
-  COD = 'Cash on Delivery',
-  SSL = 'Online Payment (SSLCommerz)',
-  BKASH = 'bKash',
-  NAGAD = 'Nagad',
-  ROCKET = 'Rocket'
-}
+export const PaymentMethod = {
+  COD: 'Cash on Delivery',
+  SSL: 'Online Payment (SSLCommerz)',
+  BKASH: 'bKash',
+  NAGAD: 'Nagad',
+  ROCKET: 'Rocket'
+} as const;
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 
 export enum Currency {
   BDT = 'BDT',

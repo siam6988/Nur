@@ -12,7 +12,7 @@ export interface SEOProps {
 
 export const useSEO = ({ title, description, keywords, image, url, type = 'website', schema }: SEOProps) => {
   useEffect(() => {
-    const baseTitle = 'NUR - Best Online Shopping Website in Bangladesh | Buy Electronics, Fashion & More';
+    const baseTitle = 'NUR - Premium Online Shopping | Top Trends & Exclusive Deals';
     const siteTitle = title ? `${title} - NUR` : baseTitle;
     
     document.title = siteTitle;

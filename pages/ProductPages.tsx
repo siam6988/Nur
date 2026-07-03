@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ProductCard, RatingStars, Button, Card, LoadingSpinner, ProductCardSkeleton } from '../components/UIComponents';
+import { ProductReviews } from '../components/ProductReviews';
 import { CATEGORIES } from '../constants';
 import { Filter, ShoppingCart, Heart, Minus, Plus, Share2, Star, Search, X, Package, Sparkles, Loader2, Bot } from 'lucide-react';
 import { Product, OrderStatus } from '../types';
@@ -742,84 +743,7 @@ export const ProductDetails: React.FC = () => {
          </div>
        </Card>
 
-       {/* Reviews Section */}
-       <div className="mt-8">
-         <h2 className="text-2xl font-bold mb-6 dark:text-white" data-key="reviews">{t('reviews')} ({product.reviews?.length || 0})</h2>
-         
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           {/* Review List */}
-           <div className="space-y-4">
-             {product.reviews && product.reviews.length > 0 ? (
-               product.reviews.map(review => (
-                 <Card key={review.id} className="!p-4">
-                   <div className="flex justify-between items-start mb-2">
-                     <div>
-                       <p className="font-bold text-sm dark:text-white">{review.userName}</p>
-                       <div className="flex items-center gap-2">
-                         <RatingStars rating={review.rating} size={12} />
-                         <span className="text-xs text-gray-400">{review.date}</span>
-                       </div>
-                     </div>
-                   </div>
-                   <p className="text-sm text-gray-600 dark:text-gray-300">{review.comment}</p>
-                 </Card>
-               ))
-             ) : (
-               <div className="text-gray-500 italic" data-key="noReviews">{t('noReviews')}</div>
-             )}
-           </div>
-
-           {/* Add Review Form */}
-           {canReview && !hasReviewed ? (
-             <Card>
-               <h3 className="font-bold text-lg mb-4 dark:text-white" data-key="writeReview">{t('writeReview')}</h3>
-               <div className="mb-4">
-                 <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1" data-key="rating">{t('rating')}</label>
-                 <div className="flex gap-1">
-                   {[1, 2, 3, 4, 5].map(star => (
-                     <button key={star} onClick={() => setReviewRating(star)} className="focus:outline-none">
-                       <Star size={24} className={`${star <= reviewRating ? 'text-accent fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
-                     </button>
-                   ))}
-                 </div>
-               </div>
-               <div className="mb-4">
-                 <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1" data-key="yourOpinion">{t('yourOpinion')}</label>
-                 <textarea 
-                   className="w-full border dark:border-darkBorder dark:bg-darkBg dark:text-white rounded p-2 text-sm" 
-                   rows={4}
-                   value={reviewText}
-                   onChange={e => setReviewText(e.target.value)}
-                   placeholder={t('placeholderReview')}
-                 ></textarea>
-               </div>
-               <Button 
-                 onClick={() => {
-                   if (reviewText.trim()) {
-                     addReview(product.id, reviewRating, reviewText);
-                     setReviewText('');
-                     setReviewRating(5);
-                   }
-                 }}
-                 disabled={!reviewText.trim()}
-                 data-key="submitReview"
-               >
-                 {t('submitReview')}
-               </Button>
-             </Card>
-           ) : hasReviewed ? (
-             <Card className="flex flex-col items-center justify-center text-center py-10">
-               <Star size={48} className="text-accent mb-4 fill-current" />
-               <p className="text-gray-500 dark:text-gray-400">You have already reviewed this product.</p>
-             </Card>
-           ) : (
-             <Card className="flex flex-col items-center justify-center text-center py-10">
-               <Package size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-               <p className="text-gray-500 dark:text-gray-400">You must purchase and receive this product to leave a review.</p>
-             </Card>
-           )}
-         </div>
-       </div>
-    </motion.div>
+       <ProductReviews product={product} canReview={canReview} hasReviewed={!!hasReviewed} addReview={addReview} t={t} />
+     </motion.div>
   );
 };
