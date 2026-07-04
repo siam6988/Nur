@@ -67,7 +67,9 @@ export const AvatarRenderer: React.FC<{ avatar: string | undefined, className?: 
   return <img src={avatar || 'https://picsum.photos/seed/user_avatar/100/100'} alt="avatar" className={className} />;
 };
 
-export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+import { motion } from 'motion/react';
+
+export const ProductCard: React.FC<{ product: Product, index?: number }> = ({ product, index = 0 }) => {
   const { addToCart, wishlist, toggleWishlist, language, user, t, formatPrice } = useStore();
   const discount = product.discountPercentage || 0;
   const discountedPrice = product.price - (product.price * discount / 100);
@@ -76,7 +78,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const displayName = language === 'bn' ? (product.name_bn || product.name_en) : (product.name_en || product.name);
 
   // Wholesale pricing logic
-  let priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">{formatPrice(discountedPrice)}</span>;
+  let priceDisplay = <span className="text-primary dark:text-white font-serif font-bold text-sm md:text-lg">{formatPrice(discountedPrice)}</span>;
   let canAddToCart = true;
   
   if (product.isWholesale) {
@@ -90,7 +92,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       const prices = product.tierPricing.map(t => t.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
-      priceDisplay = <span className="text-primary dark:text-white font-bold text-sm md:text-lg">{formatPrice(minPrice)} - {formatPrice(maxPrice)}</span>;
+      priceDisplay = <span className="text-primary dark:text-white font-serif font-bold text-sm md:text-lg">{formatPrice(minPrice)} - {formatPrice(maxPrice)}</span>;
     }
   }
 
@@ -115,22 +117,35 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <div className="product-card-premium group bg-white dark:bg-darkCard rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-darkBorder cursor-pointer relative h-full flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.3 }}
+      className="group bg-white dark:bg-darkCard rounded-xl overflow-hidden cursor-pointer relative shadow-sm hover:shadow-xl border border-gray-100 dark:border-darkBorder h-full flex flex-col transition-all duration-300"
+    >
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-darkBg">
         <Link to={`/product/${product.id}`}>
           <ImageWithLoader 
             src={product.images[0]} 
             alt={displayName} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-in-out"
           />
+          {product.images[1] && (
+            <ImageWithLoader 
+              src={product.images[1]} 
+              alt={displayName} 
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-in-out"
+            />
+          )}
         </Link>
         {(product.discountPercentage || 0) > 0 && !product.isWholesale && (
-          <span className="absolute top-2 left-2 bg-accent text-primary text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+          <span className="absolute top-2 left-2 bg-accent text-primary text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
             -{product.discountPercentage}%
           </span>
         )}
         {product.isWholesale && product.minimumOrderQuantity && (
-          <span className="absolute top-2 left-2 bg-primary text-accent text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+          <span className="absolute top-2 left-2 bg-primary text-accent text-[10px] font-bold px-3 py-1 rounded-full shadow-sm border border-accent/20">
             MOQ: {product.minimumOrderQuantity}
           </span>
         )}
@@ -139,60 +154,49 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             e.preventDefault();
             toggleWishlist(product);
           }}
-          className={`absolute top-2 right-2 p-1.5 rounded-full shadow-md transition hover:scale-110 z-10 ${
+          className={`absolute top-2 right-2 p-2 rounded-full shadow-md transition-all duration-300 hover:scale-110 z-10 ${
             isWishlisted 
-              ? 'bg-accent text-primary ring-2 ring-white dark:ring-darkBg' 
-              : 'bg-white/90 dark:bg-darkCard/90 text-gray-500 hover:text-accent'
+              ? 'bg-accent text-primary' 
+              : 'bg-white/10 backdrop-blur-md text-white hover:bg-accent/80 hover:text-primary'
           }`}
           aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
         </button>
-      </div>
 
-      <div className="p-4 flex flex-col flex-grow">
-        <Link to={`/product/${product.id}`} className="hover-underline-gold text-gray-900 dark:text-gray-200 transition-colors inline-block w-full">
-           <h3 className="text-xs md:text-sm font-medium line-clamp-2 mb-2 h-10" title={displayName}>{displayName}</h3>
+        {/* Quick Add Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out z-10 bg-gradient-to-t from-black/80 to-transparent">
+           <button 
+             onClick={handleAddToCart}
+             disabled={!canAddToCart}
+             className="w-full py-3 bg-accent text-primary font-bold text-sm tracking-widest uppercase rounded-full hover:bg-white hover:text-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed btn-navy-gold"
+           >
+             Quick Add
+           </button>
+        </div>
+      </div>
+      
+      <div className="p-4 flex flex-col flex-grow text-center items-center justify-center">
+        <Link to={`/product/${product.id}`} className="hover-underline-gold text-gray-900 dark:text-gray-200 transition-colors inline-block w-full mb-1"> 
+          <h3 className="text-sm font-serif font-medium line-clamp-2 h-10 tracking-wide" title={displayName}>{displayName}</h3>
         </Link>
         
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col items-center">
           <div className="flex items-center space-x-2 mb-2">
             {priceDisplay}
             {(product.discountPercentage || 0) > 0 && !product.isWholesale && (
-              <span className="text-gray-400 dark:text-gray-600 text-[10px] md:text-xs line-through">{formatPrice(product.price)}</span>
+              <span className="text-gray-400 text-xs line-through">{formatPrice(product.price)}</span>
             )}
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              <RatingStars rating={product.rating > 0 ? product.rating : 5} size={12} />
-              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
-                ({product.reviews?.length || 0})
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-1.5 border border-gray-100 dark:border-darkBorder rounded-full p-1 bg-gray-50 dark:bg-darkBg shadow-sm">
-              <Link
-                to={`/trial-room?product=${product.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-gradient-to-br from-blue-100 to-purple-100 hover:from-blue-200 hover:to-purple-200 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-purple-300 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm group relative overflow-hidden"
-                title="AI Try On"
-              >
-                 <Sparkles size={14} className="group-hover:scale-110 transition-transform" />
-              </Link>
-              <button 
-                onClick={handleAddToCart}
-                disabled={!canAddToCart}
-                className={`flex items-center justify-center w-7 h-7 rounded-full transition shadow-sm ${!canAddToCart ? 'bg-gray-400 text-white cursor-not-allowed opacity-50' : 'bg-primary hover:bg-[#06152a] text-accent'}`}
-                title={!canAddToCart ? "Wholesale access required" : "Add to Cart"}
-              >
-                <ShoppingCart size={12} />
-              </button>
-            </div>
+          <div className="flex items-center space-x-1 mb-2 opacity-50 group-hover:opacity-100 transition-opacity">
+            <RatingStars rating={product.rating > 0 ? product.rating : 5} size={12} />
+            <span className="text-[10px] text-gray-500">
+              ({product.reviews?.length || 0})
+            </span>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

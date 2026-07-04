@@ -439,45 +439,45 @@ export const ProductDetails: React.FC = () => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="container mx-auto px-4 py-8"
     >
-       <Card className="!p-6 md:!p-10 shadow-lg border-primary/5">
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-           <motion.div 
-             initial={{ opacity: 0, x: -30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ duration: 0.6, delay: 0.2 }}
-             className="space-y-4"
-           >
-             <div 
-               className="aspect-square bg-gray-100 dark:bg-darkBg rounded-2xl overflow-hidden border dark:border-darkBorder relative cursor-crosshair"
-               onMouseMove={handleMouseMove}
-               onMouseLeave={handleMouseLeave}
-             >
-               <img src={mainImage} alt={displayName} className="w-full h-full object-cover" />
-               <div 
-                 className="absolute inset-0 pointer-events-none transition-opacity duration-200"
-                 style={{
-                   backgroundImage: `url(${mainImage})`,
-                   backgroundPosition: zoomStyle.backgroundPosition,
-                   backgroundSize: '200%',
-                   opacity: zoomStyle.opacity
-                 }}
-               />
-             </div>
-             <div className="flex gap-2 overflow-x-auto no-scrollbar">
-               {product.images.map((img, idx) => (
-                 <button key={idx} onClick={() => setMainImage(img)} className={`w-16 h-16 rounded-lg border-2 flex-shrink-0 ${mainImage === img ? 'border-primary' : 'border-gray-200 dark:border-darkBorder'}`}>
-                   <img src={img} alt="thumb" className="w-full h-full object-cover rounded-md" />
-                 </button>
-               ))}
-             </div>
-           </motion.div>
+      <Card className="!p-6 md:!p-10 shadow-lg border-primary/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-4"
+          >
+            <div 
+              className="aspect-square bg-gray-100 dark:bg-darkBg rounded-2xl overflow-hidden border dark:border-darkBorder relative cursor-crosshair"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
+              <img src={mainImage} alt={displayName} className="w-full h-full object-cover" />
+              <div 
+                className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                style={{
+                  backgroundImage: `url(${mainImage})`,
+                  backgroundPosition: zoomStyle.backgroundPosition,
+                  backgroundSize: '200%',
+                  opacity: zoomStyle.opacity
+                }}
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {product.images.map((img, idx) => (
+                <button key={idx} onClick={() => setMainImage(img)} className={`w-16 h-16 rounded-lg border-2 flex-shrink-0 ${mainImage === img ? 'border-primary' : 'border-gray-200 dark:border-darkBorder'}`}>
+                  <img src={img} alt="thumb" className="w-full h-full object-cover rounded-md" />
+                </button>
+              ))}
+            </div>
+          </motion.div>
 
-           <motion.div 
-             initial={{ opacity: 0, x: 30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ duration: 0.6, delay: 0.3 }}
-             className="flex flex-col h-full"
-           >
+          <motion.div 
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col h-full"
+          >
              <h1 className="text-2xl md:text-4xl font-bold dark:text-white mb-2">{displayName}</h1>
              
              {product.isWholesale && (
@@ -741,7 +741,7 @@ export const ProductDetails: React.FC = () => {
              )}
            </motion.div>
          </div>
-       </Card>
+      </Card>
 
        <ProductReviews product={product} canReview={canReview} hasReviewed={!!hasReviewed} addReview={addReview} t={t} />
      </motion.div>

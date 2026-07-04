@@ -29,7 +29,7 @@ export const analyzeImageForSearch = async (file: File): Promise<string> => {
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-1.5-flash",
       contents: { parts: [imagePart, textPart] },
     });
 
@@ -52,7 +52,7 @@ Description: ${description}
 Provide styling tips, suggestions for what to pair it with, and advice on occasions it might be best for. Keep it concise, engaging, and in markdown format.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-1.5-flash",
       contents: prompt,
     });
 

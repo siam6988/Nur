@@ -516,11 +516,12 @@ export const Profile: React.FC = () => {
     if (user) {
       setEditName(user.name);
       setEditAvatar(user.avatar || 'https://picsum.photos/seed/user_avatar/100/100');
+    } else {
+      navigate('/login');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   if (!user) {
-    navigate('/login');
     return null;
   }
 

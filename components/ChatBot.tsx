@@ -63,7 +63,7 @@ INSTRUCTIONS:
 `;
 
         const chat = ai.chats.create({
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-1.5-flash',
           config: {
             systemInstruction: systemInstruction,
             temperature: 0.2, // Keep it grounded
